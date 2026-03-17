@@ -67,10 +67,19 @@
       <div class="world-viewport" id="world-viewport">
         <div class="world-map" id="world-map">
           <!-- Zones rendered by world.js -->
+          <div class="world-entities" id="world-entities"></div>
+          <div class="world-coins" id="world-coins"></div>
         </div>
+        <!-- Player stays centered in viewport; world scrolls behind -->
         <div class="player-animal" id="player-in-world"></div>
-        <div class="world-entities" id="world-entities"></div>
-        <div class="world-coins" id="world-coins"></div>
+        <!-- Movement hint overlay -->
+        <div class="move-hint" id="move-hint">WASD / Arrows to move</div>
+        <!-- Virtual joystick -->
+        <div class="joystick-zone" id="joystick-zone">
+          <div class="joystick-base" id="joystick-base">
+            <div class="joystick-knob" id="joystick-knob"></div>
+          </div>
+        </div>
       </div>
       <div class="world-hud">
         <div class="hud-animal-info">
@@ -94,6 +103,10 @@
 
     <!-- ===== COMBAT ===== -->
     <div id="screen-combat" class="screen">
+      <!-- Multiplayer turn banner (hidden in single-player) -->
+      <div class="multi-turn-banner hidden" id="multi-turn-banner">
+        <span id="multi-turn-text">Player 1's Turn!</span>
+      </div>
       <div class="combat-bg" id="combat-bg"></div>
       <div class="combat-header">
         <div class="combatant combatant-left">

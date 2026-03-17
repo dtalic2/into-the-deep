@@ -63,13 +63,61 @@ const AI = (() => {
     return 'defend';
   }
 
-  // World AI: move entities slightly
+  // World AI: wander with species-specific movement personality
   function moveEntities(entities) {
     for (const ent of entities) {
-      ent.x += (Math.random() - 0.5) * 2;
-      ent.y += (Math.random() - 0.5) * 2;
-      ent.x = Math.max(5, Math.min(92, ent.x));
-      ent.y = Math.max(5, Math.min(85, ent.y));
+      let sx = 9, sy = 9; // default speed X/Y half-range
+
+      switch (ent.id) {
+        // Fast horizontal hunters — patrol like real predators
+        case 'great-white-shark':
+        case 'swordfish':
+          sx = 22; sy = 5; break;
+
+        // Energetic social swimmers
+        case 'dolphin':
+        case 'orca':
+          sx = 18; sy = 14; break;
+
+        // Slow, graceful gliders
+        case 'blue-whale':
+        case 'manta-ray':
+          sx = 10; sy = 4; break;
+
+        // Passive drifters — mostly vertical current movement
+        case 'jellyfish':
+          sx = 5; sy = 8; break;
+
+        // Deep lurkers — slow and vertical
+        case 'anglerfish':
+        case 'octopus':
+          sx = 7; sy = 11; break;
+
+        // Sideways scuttlers
+        case 'crab':
+          sx = 15; sy = 3; break;
+
+        // Slow deliberate swimmers
+        case 'sea-turtle':
+        case 'crocodile':
+        case 'iguana':
+          sx = 8; sy = 5; break;
+
+        // Medium arctic swimmers
+        case 'seal':
+        case 'penguin':
+        case 'walrus':
+          sx = 11; sy = 8; break;
+
+        // Large slow predators
+        case 'polar-bear':
+          sx = 9; sy = 6; break;
+      }
+
+      ent.x += (Math.random() - 0.5) * sx * 2;
+      ent.y += (Math.random() - 0.5) * sy * 2;
+      ent.x = Math.max(50, Math.min(1950, ent.x));
+      ent.y = Math.max(50, Math.min(1350, ent.y));
     }
   }
 

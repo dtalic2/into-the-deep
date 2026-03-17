@@ -13,6 +13,8 @@ const Game = (() => {
   let breedSlot = 0;
   let breedAnimals = [null, null];
   let shopReturnScreen = 'title';
+  let joystickVec = { x: 0, y: 0 }; // normalized [-1,1] joystick direction
+  let joystickRaf = null;
 
   // ---- Init ----
   function init() {
@@ -228,26 +230,38 @@ const Game = (() => {
     const zoneId = gameState.currentZone || 'coral-reef';
     const worldData = World.enterZone(zoneId, gameState);
     const zone = worldData.zone;
+    const { w: mapW, h: mapH } = World.getMapSize();
 
     document.getElementById('zone-title').textContent = zone.name;
 
-    // Zone background
+    // Set map to large pixel dimensions for scrolling world
     const map = document.getElementById('world-map');
-    map.innerHTML = `<div class="zone-bg ${zone.bgClass}"></div>`;
+    map.style.width = mapW + 'px';
+    map.style.height = mapH + 'px';
 
-    // Add decorations
+    // Clear everything except entity/coin containers
+    const entitiesEl = document.getElementById('world-entities');
+    const coinsEl = document.getElementById('world-coins');
+    Array.from(map.children).forEach(child => {
+      if (child !== entitiesEl && child !== coinsEl) child.remove();
+    });
+
+    // Zone background fills whole map
+    const bg = document.createElement('div');
+    bg.className = `zone-bg ${zone.bgClass}`;
+    map.insertBefore(bg, map.firstChild);
+
+    // Decorations scattered across the large map
     addZoneDecorations(map, zone);
 
-    // Player
+    // Player (stays centered in viewport — world scrolls around it)
     const playerEl = document.getElementById('player-in-world');
     playerEl.innerHTML = Animals.getSVG(gameState.selectedAnimal);
     applyCosmetics(playerEl, gameState.selectedAnimal);
     updatePlayerWorldPos();
 
-    // Entities
+    // Entities & coins
     renderWorldEntities();
-
-    // Coins
     renderWorldCoins();
 
     // HUD
@@ -257,49 +271,80 @@ const Game = (() => {
     // Zone nav
     renderZoneNav();
 
+    // Show hint
+    toast('WASD/Arrows to move  •  Walk into enemies to fight!', 'toast-hint');
+
     // Start world loop
     if (worldAnimFrame) cancelAnimationFrame(worldAnimFrame);
     worldLoop();
 
-    // Touch/click to move
+    // Click anywhere on the world to move there
     const viewport = document.getElementById('world-viewport');
     viewport.onclick = (e) => {
+      if (e.target.closest('.world-entity')) return; // entity click handled separately
       const rect = viewport.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      World.setPlayerPos(x, y);
+      const pos = World.getPlayerPos();
+      const { w: mW, h: mH } = World.getMapSize();
+      const camX = Math.max(0, Math.min(mW - rect.width, pos.x - rect.width / 2));
+      const camY = Math.max(0, Math.min(mH - rect.height, pos.y - rect.height / 2));
+      World.setPlayerPos(
+        (e.clientX - rect.left) + camX,
+        (e.clientY - rect.top) + camY
+      );
       updatePlayerWorldPos();
     };
   }
 
   function addZoneDecorations(map, zone) {
-    const decoCount = 6 + Math.floor(Math.random() * 4);
+    const { w: mapW, h: mapH } = World.getMapSize();
+
+    // Depth shadow strip — lower part of map feels deeper/darker
+    const depthShadow = document.createElement('div');
+    depthShadow.className = 'depth-shadow';
+    map.appendChild(depthShadow);
+
+    const zonePalette = {
+      'coral-reef':     { emojis: ['🪸','🌿','🐚','🪸','🌊','🐠','🦀','🐡','🦐','🌺'], cls: 'coral' },
+      'tidal-shores':   { emojis: ['🌊','🪸','🦀','🐚','🌿','🐢','🌾','🪨','🦞','🐟'] },
+      'open-ocean':     { emojis: ['🫧','🌊','🐋','🐟','🦈','🐬','🌑','🫧','🌊','💧'] },
+      'deep-trench':    { emojis: ['🪨','💀','🦑','🫙','🪨','🌑','🦴','🕳️','🫧','🧪'] },
+      'arctic-waters':  { emojis: ['❄️','🧊','🏔️','❄️','🌨️','🧊','🫧','🏞️','❄️','🐟'] },
+      'luminous-lagoon':{ emojis: ['✨','💠','🌟','🫧','💜','🌌','✨','💫','🔵','💠'] },
+    };
+    const palette = zonePalette[zone.id] || zonePalette['open-ocean'];
+    const emojis = palette.emojis;
+
+    const decoCount = 38 + Math.floor(Math.random() * 18);
     for (let i = 0; i < decoCount; i++) {
       const deco = document.createElement('div');
-      deco.className = 'zone-decor';
-      deco.style.left = (5 + Math.random() * 90) + '%';
-      deco.style.bottom = Math.random() * 30 + '%';
-      if (zone.id === 'coral-reef') {
-        deco.className += ' coral';
-        deco.textContent = ['🪸', '🌿', '🐚'][Math.floor(Math.random() * 3)];
-      } else if (zone.id === 'deep-trench') {
-        deco.textContent = ['🪨', '💀'][Math.floor(Math.random() * 2)];
-      } else if (zone.id === 'arctic-waters') {
-        deco.textContent = ['❄️', '🧊'][Math.floor(Math.random() * 2)];
-      } else {
-        deco.textContent = ['🌊', '🫧', '🪸'][Math.floor(Math.random() * 3)];
-      }
-      deco.style.fontSize = (1 + Math.random()) + 'rem';
-      deco.style.opacity = 0.2 + Math.random() * 0.3;
+      deco.className = 'zone-decor' + (palette.cls ? ' ' + palette.cls : '');
+      deco.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      // Cluster some decorations near the floor (bottom 40%) for realism
+      const y = Math.random() < 0.45
+        ? mapH * 0.6 + Math.random() * (mapH * 0.38)   // near floor
+        : 60 + Math.random() * (mapH - 120);             // spread
+      deco.style.left = (60 + Math.random() * (mapW - 120)) + 'px';
+      deco.style.top = y + 'px';
+      deco.style.fontSize = (1 + Math.random() * 1.4) + 'rem';
+      // Items near the floor are slightly larger (perspective depth cue)
+      if (y > mapH * 0.7) deco.style.fontSize = (1.4 + Math.random() * 1.2) + 'rem';
+      deco.style.opacity = 0.2 + Math.random() * 0.4;
       map.appendChild(deco);
     }
   }
 
+  // Camera follows player — world-map translates, player stays at viewport center
   function updatePlayerWorldPos() {
+    const viewport = document.getElementById('world-viewport');
+    const vw = viewport.clientWidth || 480;
+    const vh = viewport.clientHeight || 500;
     const pos = World.getPlayerPos();
-    const el = document.getElementById('player-in-world');
-    el.style.left = pos.x + '%';
-    el.style.top = pos.y + '%';
+    const { w: mapW, h: mapH } = World.getMapSize();
+
+    const camX = Math.max(0, Math.min(mapW - vw, pos.x - vw / 2));
+    const camY = Math.max(0, Math.min(mapH - vh, pos.y - vh / 2));
+
+    document.getElementById('world-map').style.transform = `translate(${-camX}px, ${-camY}px)`;
   }
 
   function renderWorldEntities() {
@@ -309,8 +354,15 @@ const Game = (() => {
       const el = document.createElement('div');
       el.className = 'world-entity' + (ent.isBoss ? ' boss' : '');
       el.innerHTML = Animals.getSVG(ent.id);
-      el.style.left = ent.x + '%';
-      el.style.top = ent.y + '%';
+
+      // Level badge
+      const badge = document.createElement('div');
+      badge.className = 'entity-level';
+      badge.textContent = ent.isBoss ? '👑 BOSS' : 'Lv' + ent.level;
+      el.appendChild(badge);
+
+      el.style.left = ent.x + 'px';
+      el.style.top = ent.y + 'px';
       el.onclick = (e) => {
         e.stopPropagation();
         startCombat(ent);
@@ -326,14 +378,13 @@ const Game = (() => {
       if (coin.collected) continue;
       const el = document.createElement('div');
       el.className = 'world-coin';
-      el.style.left = coin.x + '%';
-      el.style.top = coin.y + '%';
+      el.style.left = coin.x + 'px';
+      el.style.top = coin.y + 'px';
       container.appendChild(el);
     }
   }
 
   function updateWorldHUD() {
-    const animal = Animals.getAnimal(gameState.selectedAnimal);
     document.getElementById('hud-hp').style.width = '100%';
     document.getElementById('hud-fitness').style.width = Math.min(100, gameState.fitness / 2) + '%';
   }
@@ -362,10 +413,8 @@ const Game = (() => {
   }
 
   function worldLoop() {
-    // Move AI entities
     AI.moveEntities(World.getEntities());
 
-    // Check collisions
     const collision = World.checkCollisions();
 
     if (collision.coinsCollected > 0) {
@@ -375,26 +424,35 @@ const Game = (() => {
       toast('+' + collision.coinsCollected + ' coins!', 'toast-coins');
     }
 
-    // Check same species attraction
+    // AUTO-ENGAGE: walk into an enemy to start combat
+    if (collision.combat) {
+      startCombat(collision.combat);
+      return;
+    }
+
+    // Update proximity indicators
+    World.checkProximity(160);
+
+    // Same species attraction glow
     if (World.checkSameSpecies(gameState.selectedAnimal)) {
-      // Temporary stat buff shown in HUD
       document.getElementById('hud-fitness').style.background = 'linear-gradient(90deg, var(--attraction-pink), var(--shallow-cyan))';
     } else {
       document.getElementById('hud-fitness').style.background = '';
     }
 
-    // Re-render entity positions
+    // Update entity positions and proximity highlighting
     const entityEls = document.querySelectorAll('.world-entity');
     const entities = World.getEntities();
     entityEls.forEach((el, i) => {
       if (entities[i]) {
-        el.style.left = entities[i].x + '%';
-        el.style.top = entities[i].y + '%';
+        el.style.left = entities[i].x + 'px';
+        el.style.top = entities[i].y + 'px';
+        el.classList.toggle('near', !!entities[i].nearby);
       }
     });
 
     if (currentScreen === 'world') {
-      worldAnimFrame = requestAnimationFrame(() => setTimeout(worldLoop, 200));
+      worldAnimFrame = requestAnimationFrame(() => setTimeout(worldLoop, 180));
     }
   }
 
@@ -411,6 +469,10 @@ const Game = (() => {
       entity.isBoss,
       playerAnimalLvl
     );
+
+    // Hide multiplayer banner for single-player combat
+    const banner = document.getElementById('multi-turn-banner');
+    if (banner) banner.classList.add('hidden');
 
     showScreen('combat');
     renderCombat(combatState);
@@ -459,8 +521,9 @@ const Game = (() => {
     document.getElementById('combat-enemy-hp').style.background =
       eHp < 25 ? 'var(--hp-red)' : '';
 
-    // Enable/disable actions
-    const isPlayerTurn = combatState.turn === 'player' && !combatState.finished;
+    // In multiplayer both players use buttons; in single-player only on player turn
+    const isPlayerTurn = !combatState.finished &&
+      (multiMode || combatState.turn === 'player');
     document.getElementById('btn-attack').disabled = !isPlayerTurn;
     document.getElementById('btn-defend').disabled = !isPlayerTurn;
     document.getElementById('btn-special').disabled = !isPlayerTurn;
@@ -592,7 +655,7 @@ const Game = (() => {
       }
 
       // Show result screen
-      document.getElementById('result-title').textContent = won ? 'Victory!' : 'Defeated...';
+      document.getElementById('result-title').textContent = won ? 'Victory!' : "It's not over yet!";
       document.getElementById('result-title').style.color = won ? 'var(--premium-glow)' : 'var(--coral)';
 
       const animal = Animals.getAnimal(gameState.selectedAnimal);
@@ -659,7 +722,7 @@ const Game = (() => {
         <div style="font-size:2rem">${b.icon}</div>
         <div class="bundle-coins">${b.coins.toLocaleString()}</div>
         <div class="bundle-label">${b.name}</div>
-        <div class="bundle-price" data-bundle="${b.id}">${b.price}</div>
+        <div class="bundle-price" data-bundle="${b.id}">Buy Now! ${b.price}</div>
         ${b.bonus ? `<div class="bundle-bonus">${b.bonus}</div>` : ''}
       </div>
     `).join('');
@@ -997,11 +1060,14 @@ const Game = (() => {
   function startMultiCombat() {
     multiMode = true;
     const combatState = Multiplayer.startCombat();
+    if (!combatState) return; // safety guard
     showScreen('combat');
     renderCombat(combatState);
 
-    // In multiplayer, both sides are human-controlled
-    // Player 1 = "player" turn, Player 2 = "enemy" turn
+    // Show the turn banner for multiplayer
+    const banner = document.getElementById('multi-turn-banner');
+    if (banner) banner.classList.remove('hidden');
+
     multiTurn = 'player';
     updateMultiTurnLabel();
   }
@@ -1009,8 +1075,17 @@ const Game = (() => {
   function updateMultiTurnLabel() {
     const combatState = Combat.getState();
     if (!combatState) return;
-    const label = combatState.turn === 'player' ? 'Player 1\'s Turn' : 'Player 2\'s Turn';
-    showCombatLog(label);
+    const isP1 = combatState.turn === 'player';
+    const label = isP1 ? '⚔️  Player 1\'s Turn  ⚔️' : '⚔️  Player 2\'s Turn  ⚔️';
+    showCombatLog(isP1 ? 'Player 1 — choose your action!' : 'Player 2 — choose your action!');
+
+    const banner = document.getElementById('multi-turn-banner');
+    const text = document.getElementById('multi-turn-text');
+    if (banner && text) {
+      banner.classList.remove('hidden', 'p1-turn', 'p2-turn');
+      banner.classList.add(isP1 ? 'p1-turn' : 'p2-turn');
+      text.textContent = label;
+    }
   }
 
   function doMultiAction(action) {
@@ -1094,6 +1169,69 @@ const Game = (() => {
     }, 30000);
   }
 
+  // ---- Joystick smooth movement loop ----
+  function joystickTick() {
+    if (joystickVec.x === 0 && joystickVec.y === 0) {
+      joystickRaf = null;
+      return;
+    }
+    World.movePlayer(joystickVec.x * 4, joystickVec.y * 4);
+    updatePlayerWorldPos();
+    joystickRaf = requestAnimationFrame(joystickTick);
+  }
+
+  function bindJoystick() {
+    const base = document.getElementById('joystick-base');
+    const knob = document.getElementById('joystick-knob');
+    if (!base) return;
+
+    const RADIUS = 27; // max knob travel in px (base is 88px, inner radius ~44, knob is 34px)
+
+    function setVec(cx, cy) {
+      const rect = base.getBoundingClientRect();
+      const ox = cx - (rect.left + rect.width / 2);
+      const oy = cy - (rect.top + rect.height / 2);
+      const dist = Math.sqrt(ox * ox + oy * oy);
+      const clamped = Math.min(dist, RADIUS);
+      const angle = Math.atan2(oy, ox);
+      const nx = Math.cos(angle) * clamped;
+      const ny = Math.sin(angle) * clamped;
+
+      // Position knob
+      knob.style.left = (50 + (nx / RADIUS) * 38) + '%';
+      knob.style.top  = (50 + (ny / RADIUS) * 38) + '%';
+
+      // Normalize to [-1, 1]
+      joystickVec.x = nx / RADIUS;
+      joystickVec.y = ny / RADIUS;
+
+      if (!joystickRaf) joystickRaf = requestAnimationFrame(joystickTick);
+    }
+
+    function release() {
+      joystickVec.x = 0;
+      joystickVec.y = 0;
+      knob.style.left = '50%';
+      knob.style.top  = '50%';
+      base.classList.remove('active');
+    }
+
+    base.addEventListener('pointerdown', e => {
+      if (currentScreen !== 'world') return;
+      base.setPointerCapture(e.pointerId);
+      base.classList.add('active');
+      setVec(e.clientX, e.clientY);
+      e.preventDefault();
+    });
+    base.addEventListener('pointermove', e => {
+      if (!base.hasPointerCapture(e.pointerId)) return;
+      setVec(e.clientX, e.clientY);
+      e.preventDefault();
+    });
+    base.addEventListener('pointerup',     release);
+    base.addEventListener('pointercancel', release);
+  }
+
   // ---- Event bindings ----
   function bindEvents() {
     // Title
@@ -1153,16 +1291,21 @@ const Game = (() => {
     document.getElementById('btn-multi-rematch').onclick = () => { renderMultiplayer(); showScreen('multiplayer'); };
     document.getElementById('btn-multi-menu').onclick = () => { Multiplayer.reset(); multiMode = false; showScreen('title'); };
 
-    // Keyboard for world movement
+    // Virtual joystick
+    bindJoystick();
+
+    // Keyboard for world movement (pixel-based)
     document.addEventListener('keydown', (e) => {
       if (currentScreen !== 'world') return;
-      const speed = 4;
+      const speed = 20; // pixels per keypress
       switch (e.key) {
-        case 'ArrowUp': case 'w': World.movePlayer(0, -speed); break;
-        case 'ArrowDown': case 's': World.movePlayer(0, speed); break;
-        case 'ArrowLeft': case 'a': World.movePlayer(-speed, 0); break;
-        case 'ArrowRight': case 'd': World.movePlayer(speed, 0); break;
+        case 'ArrowUp': case 'w': case 'W': World.movePlayer(0, -speed); break;
+        case 'ArrowDown': case 's': case 'S': World.movePlayer(0, speed); break;
+        case 'ArrowLeft': case 'a': case 'A': World.movePlayer(-speed, 0); break;
+        case 'ArrowRight': case 'd': case 'D': World.movePlayer(speed, 0); break;
+        default: return;
       }
+      e.preventDefault();
       updatePlayerWorldPos();
     });
   }
