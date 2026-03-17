@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Into the Deep</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Ambient bubbles -->
+    <div id="bubbles"></div>
+
+    <!-- ===== TITLE SCREEN ===== -->
+    <div id="screen-title" class="screen active">
+      <div class="title-wrap">
+        <h1 class="game-title">Into the <span class="highlight">Deep</span></h1>
+        <p class="tagline">Rule the Ocean. Evolve. Dominate.</p>
+        <div class="title-buttons">
+          <button class="btn btn-primary" id="btn-play">Play</button>
+          <button class="btn btn-secondary" id="btn-multiplayer">Multiplayer</button>
+          <button class="btn btn-accent" id="btn-shop-title">Shop</button>
+        </div>
+        <button class="btn btn-small" id="btn-profile-title">Profile</button>
+      </div>
+      <div class="swimming-animals" id="title-swimming"></div>
+    </div>
+
+    <!-- ===== ANIMAL SELECT ===== -->
+    <div id="screen-select" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-back" id="btn-back-select">&larr; Back</button>
+        <h2>Choose Your Animal</h2>
+        <div class="coin-display" id="coins-select">0 coins</div>
+      </div>
+      <div class="animal-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="ocean">Ocean</button>
+        <button class="filter-btn" data-filter="amphibious">Amphibious</button>
+      </div>
+      <div class="animal-grid" id="animal-grid"></div>
+      <div id="animal-preview" class="animal-preview hidden">
+        <div class="preview-art" id="preview-art"></div>
+        <div class="preview-info">
+          <h3 id="preview-name"></h3>
+          <p id="preview-type" class="badge"></p>
+          <div class="stat-bars" id="preview-stats"></div>
+          <p id="preview-special" class="special-text"></p>
+          <div class="preview-actions">
+            <button class="btn btn-primary" id="btn-select-animal">Select</button>
+            <button class="btn btn-accent" id="btn-buy-animal">Unlock</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WORLD MAP ===== -->
+    <div id="screen-world" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-back" id="btn-back-world">&larr; Menu</button>
+        <h2 id="zone-title">Coral Reef</h2>
+        <div class="header-right">
+          <div class="coin-display" id="coins-world">0</div>
+          <div class="level-display" id="level-world">Lv 1</div>
+        </div>
+      </div>
+      <div class="world-viewport" id="world-viewport">
+        <div class="world-map" id="world-map">
+          <!-- Zones rendered by world.js -->
+        </div>
+        <div class="player-animal" id="player-in-world"></div>
+        <div class="world-entities" id="world-entities"></div>
+        <div class="world-coins" id="world-coins"></div>
+      </div>
+      <div class="world-hud">
+        <div class="hud-animal-info">
+          <div id="hud-animal-art" class="hud-art"></div>
+          <div class="hud-bars">
+            <div class="bar-label">HP</div>
+            <div class="bar-container"><div class="bar bar-hp" id="hud-hp"></div></div>
+            <div class="bar-label">Fitness</div>
+            <div class="bar-container"><div class="bar bar-fitness" id="hud-fitness"></div></div>
+          </div>
+        </div>
+        <div class="hud-buttons">
+          <button class="btn btn-small" id="btn-world-shop">Shop</button>
+          <button class="btn btn-small" id="btn-world-breed">Breed</button>
+          <button class="btn btn-small" id="btn-world-profile">Profile</button>
+        </div>
+      </div>
+      <!-- Zone navigation -->
+      <div class="zone-nav" id="zone-nav"></div>
+    </div>
+
+    <!-- ===== COMBAT ===== -->
+    <div id="screen-combat" class="screen">
+      <div class="combat-bg" id="combat-bg"></div>
+      <div class="combat-header">
+        <div class="combatant combatant-left">
+          <h3 id="combat-player-name">You</h3>
+          <div class="bar-container"><div class="bar bar-hp" id="combat-player-hp"></div></div>
+          <span class="hp-text" id="combat-player-hp-text"></span>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="combatant combatant-right">
+          <h3 id="combat-enemy-name">Enemy</h3>
+          <div class="bar-container"><div class="bar bar-hp" id="combat-enemy-hp"></div></div>
+          <span class="hp-text" id="combat-enemy-hp-text"></span>
+        </div>
+      </div>
+      <div class="combat-arena">
+        <div class="combat-animal combat-animal-left" id="combat-player-art"></div>
+        <div class="combat-effects" id="combat-effects"></div>
+        <div class="combat-animal combat-animal-right" id="combat-enemy-art"></div>
+      </div>
+      <div class="combat-log" id="combat-log"></div>
+      <div class="combat-actions" id="combat-actions">
+        <button class="btn btn-attack" id="btn-attack">Attack</button>
+        <button class="btn btn-defend" id="btn-defend">Defend</button>
+        <button class="btn btn-special" id="btn-special">Special</button>
+      </div>
+      <div class="combo-display hidden" id="combo-display">
+        <span class="combo-count" id="combo-count">0</span>x COMBO!
+      </div>
+    </div>
+
+    <!-- ===== COMBAT RESULT ===== -->
+    <div id="screen-combat-result" class="screen">
+      <div class="result-content">
+        <h2 id="result-title">Victory!</h2>
+        <div id="result-art" class="result-art"></div>
+        <div class="result-rewards" id="result-rewards"></div>
+        <button class="btn btn-primary" id="btn-result-continue">Continue</button>
+      </div>
+    </div>
+
+    <!-- ===== SHOP ===== -->
+    <div id="screen-shop" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-back" id="btn-back-shop">&larr; Back</button>
+        <h2>Deep Sea Shop</h2>
+        <div class="coin-display" id="coins-shop">0</div>
+      </div>
+      <div class="shop-tabs">
+        <button class="shop-tab active" data-tab="bundles">Coin Bundles</button>
+        <button class="shop-tab" data-tab="animals">Animals</button>
+        <button class="shop-tab" data-tab="cosmetics">Cosmetics</button>
+        <button class="shop-tab" data-tab="breeding">Breeding</button>
+        <button class="shop-tab" data-tab="premium">Premium</button>
+      </div>
+      <div class="shop-content" id="shop-content"></div>
+    </div>
+
+    <!-- ===== BREEDING DEN ===== -->
+    <div id="screen-breeding" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-back" id="btn-back-breed">&larr; Back</button>
+        <h2>Breeding Den</h2>
+      </div>
+      <div class="breeding-content">
+        <div class="breed-pair">
+          <div class="breed-slot" id="breed-slot-1">
+            <p>Select Animal</p>
+          </div>
+          <div class="breed-heart">&hearts;</div>
+          <div class="breed-slot" id="breed-slot-2">
+            <p>Select Animal</p>
+          </div>
+        </div>
+        <div class="attraction-meter">
+          <div class="bar-label">Attraction</div>
+          <div class="bar-container"><div class="bar bar-attraction" id="breed-attraction"></div></div>
+        </div>
+        <button class="btn btn-primary" id="btn-breed" disabled>Breed</button>
+        <div class="breed-result hidden" id="breed-result">
+          <h3>New Offspring!</h3>
+          <div id="offspring-display"></div>
+        </div>
+        <div class="breed-cooldown hidden" id="breed-cooldown">
+          <p>Breeding cooldown: <span id="cooldown-timer"></span></p>
+        </div>
+        <div class="owned-animals" id="breed-owned-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== PROFILE ===== -->
+    <div id="screen-profile" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-back" id="btn-back-profile">&larr; Back</button>
+        <h2>Diver Profile</h2>
+      </div>
+      <div class="profile-content">
+        <div class="profile-card">
+          <div class="profile-animal-art" id="profile-animal-art"></div>
+          <h3 id="profile-animal-name">No Animal</h3>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span class="stat-label">Level</span>
+              <span class="stat-value" id="profile-level">1</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-label">XP</span>
+              <span class="stat-value" id="profile-xp">0</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-label">Status Points</span>
+              <span class="stat-value" id="profile-status">0</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-label">Fitness</span>
+              <span class="stat-value" id="profile-fitness">100</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-label">Coins</span>
+              <span class="stat-value" id="profile-coins">0</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-label">Wins</span>
+              <span class="stat-value" id="profile-wins">0</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-label">Offspring</span>
+              <span class="stat-value" id="profile-offspring">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="equipped-cosmetics">
+          <h3>Equipped Cosmetics</h3>
+          <div id="profile-cosmetics" class="cosmetics-list"></div>
+        </div>
+        <div class="animal-collection">
+          <h3>Animal Collection</h3>
+          <div id="profile-collection" class="collection-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MULTIPLAYER LOBBY ===== -->
+    <div id="screen-multiplayer" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-back" id="btn-back-multi">&larr; Back</button>
+        <h2>Local Multiplayer</h2>
+      </div>
+      <div class="multi-content">
+        <div class="multi-players">
+          <div class="multi-player">
+            <h3>Player 1</h3>
+            <div class="multi-animal-slot" id="multi-slot-1">Choose Animal</div>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="multi-player">
+            <h3>Player 2</h3>
+            <div class="multi-animal-slot" id="multi-slot-2">Choose Animal</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-start-multi" disabled>Battle!</button>
+        <div class="multi-animal-picker hidden" id="multi-picker">
+          <h3>Select for <span id="multi-picking-for">Player 1</span></h3>
+          <div class="animal-grid" id="multi-animal-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MULTIPLAYER RESULT ===== -->
+    <div id="screen-multi-result" class="screen">
+      <div class="result-content">
+        <h2 id="multi-result-title">Player 1 Wins!</h2>
+        <div class="multi-scores" id="multi-scores"></div>
+        <button class="btn btn-primary" id="btn-multi-rematch">Rematch</button>
+        <button class="btn btn-secondary" id="btn-multi-menu">Main Menu</button>
+      </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container"></div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/animals.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/progression.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
