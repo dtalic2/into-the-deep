@@ -55,6 +55,9 @@ const Shop = (() => {
     if (!animal || gameState.unlockedAnimals.includes(animalId)) return { success: false, reason: 'already owned' };
     if (!Progression.spendCoins(gameState, animal.unlockCost)) return { success: false, reason: 'not enough coins' };
     gameState.unlockedAnimals.push(animalId);
+    // Initialize level tracking for newly purchased animal
+    gameState.animalLevels[animalId] = 1;
+    gameState.animalXp[animalId] = 0;
     return { success: true };
   }
 

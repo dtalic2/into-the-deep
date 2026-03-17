@@ -113,10 +113,16 @@ const Game = (() => {
       card.className = 'animal-card' + (isUnlocked ? '' : ' locked');
       if (gameState.selectedAnimal === a.id) card.classList.add('selected');
 
+      const lvl = Progression.getAnimalLevel(gameState, a.id);
+      const tier = Animals.tierLabel(a.maxLevel);
       card.innerHTML = `
         <div class="card-art">${Animals.getSVG(a.id)}</div>
         <div class="card-name">${a.name}</div>
         <div class="card-rarity rarity-${a.rarity}">${a.rarity}</div>
+        ${isUnlocked
+          ? `<div class="card-level">Lv ${lvl}/${a.maxLevel}</div>`
+          : `<div class="card-level card-level-locked">${a.unlockCost} coins</div>`}
+        <div class="card-tier tier-${tier.toLowerCase()}">Tier ${tier}</div>
       `;
       card.onclick = () => showAnimalPreview(a, isUnlocked);
       grid.appendChild(card);
@@ -133,17 +139,41 @@ const Game = (() => {
     panel.classList.remove('hidden');
 
     document.getElementById('preview-art').innerHTML = Animals.getSVG(animal.id);
+    const lvl = Progression.getAnimalLevel(gameState, animal.id);
+    const tier = Animals.tierLabel(animal.maxLevel);
     document.getElementById('preview-name').textContent = animal.name;
     const typeBadge = document.getElementById('preview-type');
     typeBadge.textContent = animal.type;
     typeBadge.className = 'badge badge-' + animal.type;
 
-    const max = Animals.getMaxStat();
-    document.getElementById('preview-stats').innerHTML = [
-      { name: 'HP', val: animal.hp, cls: 'stat-hp' },
-      { name: 'ATK', val: animal.attack, cls: 'stat-atk' },
-      { name: 'DEF', val: animal.defense, cls: 'stat-def' },
-      { name: 'SPD', val: animal.speed, cls: 'stat-spd' },
+    // Show level-scaled stats for owned animals, base stats for locked
+    const scaled = isUnlocked ? Animals.getScaledStats(animal.id, lvl) : null;
+    const displayHp = scaled ? scaled.hp : animal.hp;
+    const displayAtk = scaled ? scaled.attack : animal.attack;
+    const displayDef = scaled ? scaled.defense : animal.defense;
+    const displaySpd = scaled ? scaled.speed : animal.speed;
+
+    // Max stat scales with max possible level to show potential
+    const maxScaled = Animals.getScaledStats(animal.id, animal.maxLevel);
+    const max = Math.max(Animals.getMaxStat(), maxScaled ? maxScaled.hp : 150);
+
+    const xp = Progression.getAnimalXp(gameState, animal.id);
+    const xpNeeded = Animals.animalXpToNext(lvl);
+    const atMax = lvl >= animal.maxLevel;
+
+    document.getElementById('preview-stats').innerHTML = `
+      <div class="preview-level-info">
+        <span class="preview-level-badge tier-${tier.toLowerCase()}">Tier ${tier}</span>
+        <span class="preview-level-text">Lv ${lvl} / ${animal.maxLevel}</span>
+        ${!atMax && isUnlocked ? `<div class="bar-container" style="flex:1"><div class="bar" style="width:${(xp/xpNeeded)*100}%;background:var(--xp-purple)"></div></div>
+        <span style="font-size:.6rem;color:#aaa">${xp}/${xpNeeded} XP</span>` : ''}
+        ${atMax ? '<span style="font-size:.65rem;color:var(--coin-gold)">MAX</span>' : ''}
+      </div>
+    ` + [
+      { name: 'HP', val: displayHp, cls: 'stat-hp' },
+      { name: 'ATK', val: displayAtk, cls: 'stat-atk' },
+      { name: 'DEF', val: displayDef, cls: 'stat-def' },
+      { name: 'SPD', val: displaySpd, cls: 'stat-spd' },
     ].map(s => `
       <div class="stat-row">
         <span class="stat-name">${s.name}</span>
@@ -191,7 +221,9 @@ const Game = (() => {
       return;
     }
     updateCoins();
-    document.getElementById('level-world').textContent = 'Lv ' + gameState.level;
+    const aLvl = Progression.getAnimalLevel(gameState, gameState.selectedAnimal);
+    const aData = Animals.getAnimal(gameState.selectedAnimal);
+    document.getElementById('level-world').textContent = `Lv ${aLvl}/${aData.maxLevel}`;
 
     const zoneId = gameState.currentZone || 'coral-reef';
     const worldData = World.enterZone(zoneId, gameState);
@@ -371,11 +403,13 @@ const Game = (() => {
     if (worldAnimFrame) cancelAnimationFrame(worldAnimFrame);
     combatEnemy = entity;
 
+    const playerAnimalLvl = Progression.getAnimalLevel(gameState, gameState.selectedAnimal);
     const combatState = Combat.init(
       gameState.selectedAnimal,
       entity.id,
       entity.level,
-      entity.isBoss
+      entity.isBoss,
+      playerAnimalLvl
     );
 
     showScreen('combat');
@@ -390,9 +424,11 @@ const Game = (() => {
       document.getElementById('combat-bg').innerHTML = `<div class="zone-bg ${zone.bgClass}" style="opacity:.5"></div>`;
     }
 
-    // Names
-    document.getElementById('combat-player-name').textContent = combatState.player.name;
-    document.getElementById('combat-enemy-name').textContent = combatState.enemy.name;
+    // Names with levels
+    document.getElementById('combat-player-name').textContent =
+      combatState.player.name + ' Lv' + (combatState.player.animalLevel || 1);
+    document.getElementById('combat-enemy-name').textContent =
+      combatState.enemy.name + ' Lv' + (combatState.enemy.animalLevel || 1);
 
     // Art
     const playerArt = document.getElementById('combat-player-art');
@@ -569,13 +605,23 @@ const Game = (() => {
         const lvl = Progression.addXP(gameState, r.xp);
         Progression.addStatusPoints(gameState, r.statusPoints);
 
+        // Award animal XP to the selected animal
+        const animalXpGain = r.xp + Math.round(r.statusPoints * 0.5);
+        const animalLvl = Progression.addAnimalXP(gameState, gameState.selectedAnimal, animalXpGain);
+        const animalData = Animals.getAnimal(gameState.selectedAnimal);
+        const currentAnimalLv = Progression.getAnimalLevel(gameState, gameState.selectedAnimal);
+
         rewardsEl.innerHTML = `
           <div class="reward-item coins">+${r.coins} Coins</div>
           <div class="reward-item xp">+${r.xp} XP</div>
           <div class="reward-item status">+${r.statusPoints} Status Points</div>
+          <div class="reward-item" style="color:var(--shallow-cyan)">+${animalXpGain} ${animalData.name} XP (Lv ${currentAnimalLv}/${animalData.maxLevel})</div>
           ${lvl.leveledUp ? `<div class="reward-item" style="color:var(--premium-glow)">LEVEL UP! Now Level ${lvl.newLevel}!</div>` : ''}
+          ${animalLvl.leveledUp ? `<div class="reward-item" style="color:var(--coin-gold)">${animalData.name} leveled up to Lv ${animalLvl.newLevel}!</div>` : ''}
+          ${animalLvl.maxed ? `<div class="reward-item" style="color:var(--coin-gold)">${animalData.name} is MAX LEVEL!</div>` : ''}
         `;
         if (lvl.leveledUp) toast('Level Up! Now Level ' + lvl.newLevel, 'toast-level');
+        if (animalLvl.leveledUp) toast(animalData.name + ' reached Lv ' + animalLvl.newLevel + '!', 'toast-level');
       } else {
         rewardsEl.innerHTML = `
           <div class="reward-item" style="color:var(--coral)">Fitness decreased</div>
@@ -863,7 +909,10 @@ const Game = (() => {
   function renderProfile() {
     if (gameState.selectedAnimal) {
       document.getElementById('profile-animal-art').innerHTML = Animals.getSVG(gameState.selectedAnimal);
-      document.getElementById('profile-animal-name').textContent = Animals.getAnimal(gameState.selectedAnimal).name;
+      const selAnimal = Animals.getAnimal(gameState.selectedAnimal);
+      const selLvl = Progression.getAnimalLevel(gameState, gameState.selectedAnimal);
+      document.getElementById('profile-animal-name').textContent =
+        `${selAnimal.name} (Lv ${selLvl}/${selAnimal.maxLevel} - Tier ${Animals.tierLabel(selAnimal.maxLevel)})`;
     }
     document.getElementById('profile-level').textContent = gameState.level;
     document.getElementById('profile-xp').textContent = gameState.xp + '/' + Progression.xpToLevel(gameState.level);
@@ -888,7 +937,11 @@ const Game = (() => {
     const collEl = document.getElementById('profile-collection');
     collEl.innerHTML = Animals.getAll().map(a => {
       const owned = gameState.unlockedAnimals.includes(a.id);
-      return `<div class="collection-item ${owned ? 'owned' : 'not-owned'}">${Animals.getSVG(a.id)}</div>`;
+      const aLv = Progression.getAnimalLevel(gameState, a.id);
+      return `<div class="collection-item ${owned ? 'owned' : 'not-owned'}" title="${a.name} Lv${aLv}/${a.maxLevel}">
+        ${Animals.getSVG(a.id)}
+        ${owned ? `<span class="collection-level">Lv${aLv}</span>` : ''}
+      </div>`;
     }).join('');
   }
 

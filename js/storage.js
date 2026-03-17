@@ -16,6 +16,8 @@ const Storage = (() => {
     losses: 0,
     selectedAnimal: null,
     unlockedAnimals: ['dolphin', 'crab', 'sea-turtle'],
+    animalLevels: { 'dolphin': 1, 'crab': 1, 'sea-turtle': 1 },  // { animalId: currentLevel }
+    animalXp: { 'dolphin': 0, 'crab': 0, 'sea-turtle': 0 },       // { animalId: xpProgress }
     equippedCosmetics: {},    // { animalId: ['cosmetic-id', ...] }
     ownedCosmetics: [],
     offspring: [],

@@ -163,9 +163,51 @@ const Progression = (() => {
     return value;
   }
 
+  // ---- Animal Leveling ----
+
+  function addAnimalXP(gameState, animalId, amount) {
+    const animal = Animals.getAnimal(animalId);
+    if (!animal) return { leveledUp: false };
+
+    if (!gameState.animalLevels[animalId]) gameState.animalLevels[animalId] = 1;
+    if (!gameState.animalXp[animalId]) gameState.animalXp[animalId] = 0;
+
+    const currentLvl = gameState.animalLevels[animalId];
+    if (currentLvl >= animal.maxLevel) return { leveledUp: false, maxed: true };
+
+    gameState.animalXp[animalId] += amount;
+    let leveledUp = false;
+    let newLevel = currentLvl;
+
+    while (
+      gameState.animalXp[animalId] >= Animals.animalXpToNext(gameState.animalLevels[animalId]) &&
+      gameState.animalLevels[animalId] < animal.maxLevel
+    ) {
+      gameState.animalXp[animalId] -= Animals.animalXpToNext(gameState.animalLevels[animalId]);
+      gameState.animalLevels[animalId]++;
+      leveledUp = true;
+      newLevel = gameState.animalLevels[animalId];
+    }
+
+    // Clamp XP at max level
+    if (gameState.animalLevels[animalId] >= animal.maxLevel) {
+      gameState.animalXp[animalId] = 0;
+    }
+
+    return { leveledUp, newLevel, maxLevel: animal.maxLevel };
+  }
+
+  function getAnimalLevel(gameState, animalId) {
+    return gameState.animalLevels[animalId] || 1;
+  }
+
+  function getAnimalXp(gameState, animalId) {
+    return gameState.animalXp[animalId] || 0;
+  }
+
   return {
     xpToLevel, addXP, addCoins, spendCoins, addStatusPoints,
     updateFitness, checkDailyBonus, getAttraction, canBreed, breed,
-    sellOffspring, updateZoneUnlocks
+    sellOffspring, updateZoneUnlocks, addAnimalXP, getAnimalLevel, getAnimalXp
   };
 })();

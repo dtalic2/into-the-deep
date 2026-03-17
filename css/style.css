@@ -208,6 +208,43 @@ body { display: flex; align-items: center; justify-content: center; }
 .rarity-rare { color: #4fc3f7; }
 .rarity-legendary { color: var(--coin-gold); text-shadow: 0 0 8px rgba(244,211,94,.5); }
 
+/* Animal level & tier on cards */
+.card-level {
+  font-size: .55rem; color: var(--shallow-cyan); margin-top: 2px; font-weight: 700;
+}
+.card-level-locked { color: var(--coin-gold); }
+.card-tier {
+  font-size: .5rem; font-weight: 900; letter-spacing: 1px;
+  margin-top: 1px; text-transform: uppercase;
+}
+.tier-s { color: var(--coin-gold); text-shadow: 0 0 6px rgba(244,211,94,.6); }
+.tier-a { color: #f06292; }
+.tier-b { color: #4fc3f7; }
+.tier-c { color: #aaa; }
+
+/* Preview level info row */
+.preview-level-info {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px; flex-wrap: wrap;
+}
+.preview-level-badge {
+  font-size: .65rem; font-weight: 900; padding: 2px 8px;
+  border-radius: 10px; text-transform: uppercase;
+}
+.preview-level-badge.tier-s { background: rgba(244,211,94,.15); border: 1px solid var(--coin-gold); }
+.preview-level-badge.tier-a { background: rgba(240,98,146,.15); border: 1px solid #f06292; }
+.preview-level-badge.tier-b { background: rgba(79,195,247,.15); border: 1px solid #4fc3f7; }
+.preview-level-badge.tier-c { background: rgba(170,170,170,.15); border: 1px solid #aaa; }
+.preview-level-text {
+  font-size: .75rem; font-weight: 700; color: var(--pearl);
+}
+
+/* Collection level label */
+.collection-level {
+  display: block; font-size: .5rem; font-weight: 700;
+  color: var(--shallow-cyan); text-align: center; margin-top: -2px;
+}
+
 .animal-preview {
   position: absolute; bottom: 0; left: 0; right: 0;
   background: rgba(4,11,26,.95); backdrop-filter: blur(10px);

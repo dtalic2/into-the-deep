@@ -6,11 +6,22 @@
 const Combat = (() => {
   let state = null;
 
-  function init(playerAnimalId, enemyAnimalId, enemyLevel = 1, isBoss = false) {
+  function init(playerAnimalId, enemyAnimalId, enemyLevel = 1, isBoss = false, playerAnimalLevel = 1) {
     const player = { ...Animals.getAnimal(playerAnimalId) };
     const enemy = { ...Animals.getAnimal(enemyAnimalId) };
 
-    // Scale enemy stats by level
+    // Scale player stats by their animal's individual level
+    const playerScaled = Animals.getScaledStats(playerAnimalId, playerAnimalLevel);
+    if (playerScaled) {
+      player.hp = playerScaled.hp;
+      player.attack = playerScaled.attack;
+      player.defense = playerScaled.defense;
+      player.speed = playerScaled.speed;
+      player.special = { ...player.special, damage: playerScaled.specialDamage || player.special.damage };
+    }
+    player.animalLevel = playerAnimalLevel;
+
+    // Scale enemy stats by encounter level
     const scale = 1 + (enemyLevel - 1) * 0.15;
     enemy.hp = Math.round(enemy.hp * scale);
     enemy.attack = Math.round(enemy.attack * scale);
@@ -21,6 +32,7 @@ const Combat = (() => {
       enemy.attack = Math.round(enemy.attack * 1.2);
       enemy.name = 'Boss ' + enemy.name;
     }
+    enemy.animalLevel = enemyLevel;
 
     state = {
       player: {

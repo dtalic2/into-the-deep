@@ -275,78 +275,82 @@ const Animals = (() => {
   // ---- Animal data ----
   const roster = [
     // Ocean animals
+    // maxLevel tiers: 10, 20, 50, 100 — higher cap = stronger animal = costs more
+    // unlockCost scales with maxLevel tier
+
+    // Ocean animals
     { id: 'dolphin', name: 'Dolphin', type: 'ocean', hp: 80, attack: 14, defense: 10, speed: 18,
       special: { name: 'Sonar Blast', damage: 22, desc: 'Stun with echolocation' },
-      rarity: 'common', unlockCost: 0 },
+      rarity: 'common', maxLevel: 20, unlockCost: 0 },
 
     { id: 'crab', name: 'Crab', type: 'amphibious', hp: 70, attack: 16, defense: 18, speed: 8,
       special: { name: 'Claw Crush', damage: 26, desc: 'Devastating pincer attack' },
-      rarity: 'common', unlockCost: 0 },
+      rarity: 'common', maxLevel: 10, unlockCost: 0 },
 
     { id: 'sea-turtle', name: 'Sea Turtle', type: 'ocean', hp: 100, attack: 8, defense: 22, speed: 6,
       special: { name: 'Shell Shield', damage: 0, desc: 'Block all damage this turn', isDefense: true },
-      rarity: 'common', unlockCost: 0 },
+      rarity: 'common', maxLevel: 20, unlockCost: 0 },
 
     { id: 'great-white-shark', name: 'Great White', type: 'ocean', hp: 90, attack: 22, defense: 8, speed: 16,
       special: { name: 'Frenzy Bite', damage: 35, desc: 'Savage multi-bite frenzy' },
-      rarity: 'rare', unlockCost: 300 },
+      rarity: 'rare', maxLevel: 50, unlockCost: 450 },
 
     { id: 'octopus', name: 'Octopus', type: 'ocean', hp: 65, attack: 16, defense: 12, speed: 14,
       special: { name: 'Ink Cloud', damage: 10, desc: 'Blind enemy, reduce their accuracy', debuff: 'blind' },
-      rarity: 'rare', unlockCost: 250 },
+      rarity: 'rare', maxLevel: 50, unlockCost: 400 },
 
     { id: 'orca', name: 'Orca', type: 'ocean', hp: 110, attack: 20, defense: 14, speed: 15,
       special: { name: 'Breach Slam', damage: 30, desc: 'Leap and crush from above' },
-      rarity: 'legendary', unlockCost: 500 },
+      rarity: 'legendary', maxLevel: 100, unlockCost: 1200 },
 
     { id: 'manta-ray', name: 'Manta Ray', type: 'ocean', hp: 75, attack: 12, defense: 14, speed: 16,
       special: { name: 'Wing Sweep', damage: 18, desc: 'Wide sweeping wing attack' },
-      rarity: 'rare', unlockCost: 200 },
+      rarity: 'rare', maxLevel: 20, unlockCost: 250 },
 
     { id: 'anglerfish', name: 'Anglerfish', type: 'ocean', hp: 60, attack: 20, defense: 6, speed: 10,
       special: { name: 'Lure Strike', damage: 28, desc: 'Mesmerize and devour', debuff: 'stun' },
-      rarity: 'rare', unlockCost: 300 },
+      rarity: 'rare', maxLevel: 50, unlockCost: 450 },
 
     { id: 'jellyfish', name: 'Jellyfish', type: 'ocean', hp: 50, attack: 10, defense: 4, speed: 12,
       special: { name: 'Venom Sting', damage: 15, desc: 'Poison that deals damage over time', debuff: 'poison' },
-      rarity: 'common', unlockCost: 150 },
+      rarity: 'common', maxLevel: 10, unlockCost: 100 },
 
     { id: 'swordfish', name: 'Swordfish', type: 'ocean', hp: 70, attack: 24, defense: 6, speed: 22,
       special: { name: 'Piercing Charge', damage: 32, desc: 'Full-speed lance charge' },
-      rarity: 'rare', unlockCost: 250 },
+      rarity: 'rare', maxLevel: 50, unlockCost: 400 },
 
     { id: 'blue-whale', name: 'Blue Whale', type: 'ocean', hp: 150, attack: 12, defense: 20, speed: 4,
       special: { name: 'Tidal Wave', damage: 25, desc: 'Massive wave that hits everything' },
-      rarity: 'legendary', unlockCost: 500 },
+      rarity: 'legendary', maxLevel: 100, unlockCost: 1200 },
 
     // Amphibious animals
     { id: 'crocodile', name: 'Crocodile', type: 'amphibious', hp: 95, attack: 22, defense: 16, speed: 10,
       special: { name: 'Death Roll', damage: 34, desc: 'Grab and spin violently' },
-      rarity: 'rare', unlockCost: 300 },
+      rarity: 'rare', maxLevel: 50, unlockCost: 450 },
 
     { id: 'sea-otter', name: 'Sea Otter', type: 'amphibious', hp: 55, attack: 10, defense: 8, speed: 16,
       special: { name: 'Rock Smash', damage: 20, desc: 'Smash with a rock tool' },
-      rarity: 'common', unlockCost: 150 },
+      rarity: 'common', maxLevel: 10, unlockCost: 100 },
 
     { id: 'penguin', name: 'Penguin', type: 'amphibious', hp: 60, attack: 12, defense: 12, speed: 14,
       special: { name: 'Belly Slide', damage: 16, desc: 'Slide tackle at high speed' },
-      rarity: 'common', unlockCost: 150 },
+      rarity: 'common', maxLevel: 20, unlockCost: 200 },
 
     { id: 'polar-bear', name: 'Polar Bear', type: 'amphibious', hp: 120, attack: 24, defense: 16, speed: 8,
       special: { name: 'Arctic Maul', damage: 36, desc: 'Devastating swipe attack' },
-      rarity: 'legendary', unlockCost: 500 },
+      rarity: 'legendary', maxLevel: 100, unlockCost: 1200 },
 
     { id: 'seal', name: 'Seal', type: 'amphibious', hp: 70, attack: 10, defense: 12, speed: 14,
       special: { name: 'Headbutt', damage: 18, desc: 'Surprise headbutt attack' },
-      rarity: 'common', unlockCost: 150 },
+      rarity: 'common', maxLevel: 10, unlockCost: 100 },
 
     { id: 'iguana', name: 'Marine Iguana', type: 'amphibious', hp: 65, attack: 14, defense: 14, speed: 12,
       special: { name: 'Tail Whip', damage: 20, desc: 'Powerful tail lash' },
-      rarity: 'rare', unlockCost: 200 },
+      rarity: 'rare', maxLevel: 20, unlockCost: 250 },
 
     { id: 'walrus', name: 'Walrus', type: 'amphibious', hp: 110, attack: 18, defense: 18, speed: 5,
       special: { name: 'Tusk Gore', damage: 28, desc: 'Impale with massive tusks' },
-      rarity: 'rare', unlockCost: 250 },
+      rarity: 'rare', maxLevel: 50, unlockCost: 400 },
   ];
 
   function getAnimal(id) {
@@ -370,5 +374,34 @@ const Animals = (() => {
     return 150; // for stat bar scaling
   }
 
-  return { getAnimal, getSVG, getAll, getByType, getMaxStat };
+  // Scale base stats by individual animal level
+  // Each level adds ~3% to stats, so a Lv50 animal is ~2.5x base, Lv100 is ~4x base
+  function getScaledStats(animalId, animalLevel) {
+    const base = getAnimal(animalId);
+    if (!base) return null;
+    const lvl = Math.max(1, Math.min(animalLevel, base.maxLevel));
+    const scale = 1 + (lvl - 1) * 0.03;
+    return {
+      hp: Math.round(base.hp * scale),
+      attack: Math.round(base.attack * scale),
+      defense: Math.round(base.defense * scale),
+      speed: Math.round(base.speed * scale),
+      specialDamage: Math.round((base.special.damage || 0) * scale),
+    };
+  }
+
+  // XP needed for an animal to reach the next level
+  function animalXpToNext(currentLevel) {
+    return Math.round(30 * Math.pow(currentLevel, 1.4));
+  }
+
+  // Label for max level tier
+  function tierLabel(maxLevel) {
+    if (maxLevel >= 100) return 'S';
+    if (maxLevel >= 50) return 'A';
+    if (maxLevel >= 20) return 'B';
+    return 'C';
+  }
+
+  return { getAnimal, getSVG, getAll, getByType, getMaxStat, getScaledStats, animalXpToNext, tierLabel };
 })();
