@@ -271,8 +271,11 @@ const Game = (() => {
     // Zone nav
     renderZoneNav();
 
-    // Show hint
-    toast('WASD/Arrows to move  •  Walk into enemies to fight!', 'toast-hint');
+    // Show hint — adapt for touch vs keyboard
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    toast(isTouch
+      ? 'Use joystick or tap to move  •  Walk into enemies to fight!'
+      : 'WASD/Arrows to move  •  Walk into enemies to fight!', 'toast-hint');
 
     // Start world loop
     if (worldAnimFrame) cancelAnimationFrame(worldAnimFrame);

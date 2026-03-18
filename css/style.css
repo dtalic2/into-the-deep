@@ -87,7 +87,7 @@ body { display: flex; align-items: center; justify-content: center; }
   background: linear-gradient(135deg, var(--reef-teal), #14746f);
   color: var(--pearl); box-shadow: 0 4px 15px rgba(26,147,111,.4);
 }
-.btn-primary:hover { box-shadow: 0 6px 20px rgba(26,147,111,.6); }
+@media (hover: hover) { .btn-primary:hover { box-shadow: 0 6px 20px rgba(26,147,111,.6); } }
 
 .btn-secondary {
   background: linear-gradient(135deg, var(--ocean-blue), #092d52);
@@ -101,12 +101,14 @@ body { display: flex; align-items: center; justify-content: center; }
 
 .btn-back {
   background: rgba(255,255,255,.1); color: var(--pearl);
-  padding: 8px 14px; font-size: .85rem;
+  padding: 10px 16px; font-size: .85rem;
+  min-height: 44px; display: inline-flex; align-items: center;
 }
 
 .btn-small {
   background: rgba(255,255,255,.1); color: var(--shallow-cyan);
-  padding: 6px 14px; font-size: .8rem; border: 1px solid rgba(136,217,230,.3);
+  padding: 10px 16px; font-size: .8rem; border: 1px solid rgba(136,217,230,.3);
+  min-height: 44px; display: inline-flex; align-items: center;
 }
 
 .btn-attack {
@@ -191,7 +193,7 @@ body { display: flex; align-items: center; justify-content: center; }
   border: 2px solid transparent; transition: all .2s;
   position: relative;
 }
-.animal-card:hover { background: rgba(255,255,255,.12); }
+@media (hover: hover) { .animal-card:hover { background: rgba(255,255,255,.12); } }
 .animal-card.selected { border-color: var(--premium-glow); background: rgba(0,245,212,.08); }
 .animal-card.locked { opacity: .5; }
 .animal-card.locked::after {
@@ -456,7 +458,7 @@ body { display: flex; align-items: center; justify-content: center; }
   transition: left .2s ease-out, top .2s ease-out, filter .2s;
 }
 .world-entity svg { width: 100%; height: 100%; }
-.world-entity:hover { filter: brightness(1.3); }
+@media (hover: hover) { .world-entity:hover { filter: brightness(1.3); } }
 
 .world-entity.boss {
   width: 70px; height: 70px;
@@ -510,12 +512,12 @@ body { display: flex; align-items: center; justify-content: center; }
 
 .world-coins { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .world-coin {
-  position: absolute; width: 20px; height: 20px;
+  position: absolute; width: 30px; height: 30px;
   background: radial-gradient(circle, var(--coin-gold), #c9a200);
   border-radius: 50%; pointer-events: all; cursor: pointer;
   transform: translate(-50%, -50%);
   animation: coinBob 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(244,211,94,.5);
+  box-shadow: 0 0 10px rgba(244,211,94,.5);
 }
 @keyframes coinBob { 0%, 100% { transform: translate(-50%, -50%) translateY(0); } 50% { transform: translate(-50%, -50%) translateY(-6px); } }
 
@@ -728,7 +730,7 @@ body { display: flex; align-items: center; justify-content: center; }
   padding: 14px; margin-bottom: 10px; cursor: pointer;
   border: 1px solid transparent; transition: all .2s;
 }
-.shop-item:hover { border-color: rgba(255,255,255,.15); }
+@media (hover: hover) { .shop-item:hover { border-color: rgba(255,255,255,.15); } }
 .shop-item.featured {
   border-color: var(--premium-glow);
   background: rgba(0,245,212,.05);
@@ -783,7 +785,7 @@ body { display: flex; align-items: center; justify-content: center; }
   border-radius: var(--radius); display: flex; align-items: center;
   justify-content: center; cursor: pointer; transition: all .2s;
 }
-.breed-slot:hover { border-color: var(--attraction-pink); }
+@media (hover: hover) { .breed-slot:hover { border-color: var(--attraction-pink); } }
 .breed-slot.filled { border-style: solid; border-color: var(--attraction-pink); }
 .breed-slot svg { width: 80%; height: 80%; }
 .breed-heart { font-size: 2rem; color: var(--attraction-pink); animation: heartbeat 1.5s ease-in-out infinite; }
@@ -1104,6 +1106,36 @@ body { display: flex; align-items: center; justify-content: center; }
   50%       { transform: rotate(11deg); }
 }
 
+/* ===== MOBILE / TOUCH ===== */
+/* Prevent accidental text selection and callouts */
+#game-container {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Safe area for iPhone notch/home-indicator */
+#game-container {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Prevent iOS overscroll bounce */
+html { overflow: hidden; overscroll-behavior: none; }
+body { overflow: hidden; overscroll-behavior: none; position: fixed; width: 100%; height: 100%; }
+
+/* Hide joystick on desktop (keyboard users), show on touch */
+@media (hover: hover) and (pointer: fine) {
+  .joystick-zone { display: none; }
+}
+
+/* Combat buttons row — ensure tappable on small screens */
+.combat-actions { gap: 6px; }
+.combat-actions .btn { min-height: 48px; font-size: .85rem; padding: 10px 8px; }
+
+/* Zone nav scrollable on small screens */
+.zone-nav { -webkit-overflow-scrolling: touch; }
+
 /* ===== RESPONSIVE ===== */
 @media (min-width: 500px) {
   #game-container {
@@ -1111,4 +1143,15 @@ body { display: flex; align-items: center; justify-content: center; }
     margin: 20px auto;
     max-height: calc(100vh - 40px);
   }
+}
+
+/* Small iPhone screens (SE, mini) */
+@media (max-width: 375px) {
+  .screen-header h2 { font-size: 1rem; }
+  .screen-header { padding: 8px 10px; }
+  .world-hud { padding: 6px 8px; }
+  .btn-small, .btn-back { padding: 8px 10px; font-size: .75rem; }
+  .combat-actions .btn { font-size: .78rem; padding: 8px 6px; }
+  .joystick-base { width: 72px; height: 72px; }
+  .joystick-knob { width: 28px; height: 28px; }
 }
