@@ -7,7 +7,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #d0d0d0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif; touch-action: none; }
-  canvas { border-radius: 8px; cursor: none; }
+  canvas { cursor: none; display: block; width: 100vw; height: 100vh; }
   #ui { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #333; text-align: center; pointer-events: none; z-index: 2; }
   #score { font-size: 28px; font-weight: bold; text-shadow: 0 1px 4px rgba(255,255,255,0.8); }
   #leaderboard { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.85); padding: 12px 16px; border-radius: 10px; color: #333; font-size: 13px; min-width: 150px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 2; }
@@ -21,6 +21,7 @@
   #overlay p { font-size: 16px; opacity: 0.6; margin-bottom: 24px; }
   #overlay button { padding: 14px 48px; font-size: 18px; border: none; border-radius: 12px; background: #FF4B5C; color: white; cursor: pointer; font-weight: bold; transition: transform 0.1s; box-shadow: 0 4px 16px rgba(255,75,92,0.3); }
   #overlay button:hover { transform: scale(1.05); }
+  #overlay-shop-btn:hover { transform: scale(1.05) !important; }
   #controls-hint { font-size: 12px; opacity: 0.4; margin-top: 16px; }
   #kill-feed { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: 2; text-align: center; }
   .kill-notif { color: #333; font-size: 15px; font-weight: bold; opacity: 0; animation: killFade 2s ease-out forwards; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
@@ -63,11 +64,9 @@
   #overlay-profile-btn:hover { border-color: #4B7BFF; color: #4B7BFF; }
 
   /* Evo Tree Panel */
-  #evo-toggle { position: absolute; bottom: 24px; right: 24px; background: rgba(255,255,255,0.9); border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 6; display: flex; align-items: center; gap: 6px; }
-  #evo-toggle:hover { background: white; }
-  #evo-panel { position: absolute; bottom: 60px; right: 24px; width: 340px; max-height: 420px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
+  #evo-panel { position: absolute; bottom: 0; left: 0; right: 0; top: 0; width: 100%; max-height: 100%; background: rgba(255,255,255,0.97); border-radius: 0; z-index: 15; overflow-y: auto; display: none; backdrop-filter: blur(10px); }
   #evo-panel.open { display: block; }
-  #evo-panel-header { padding: 14px 16px 8px; font-size: 14px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  #evo-panel-header { padding: 16px 20px 8px; font-size: 18px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(255,255,255,0.97); z-index: 1; }
   #evo-panel-header .kardashev-legend { font-size: 10px; color: #999; font-weight: 400; }
   .evo-planet { padding: 0 0 4px; }
   .evo-planet-header { padding: 10px 16px 4px; font-size: 13px; font-weight: 700; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
@@ -89,12 +88,19 @@
   .evo-bar { height: 3px; border-radius: 2px; margin: 1px 16px 2px 8px; background: #eee; }
   .evo-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
 
+  /* Bottom toolbar for game buttons */
+  #game-toolbar { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; padding: 10px 16px; z-index: 6; pointer-events: none; }
+  #game-toolbar button { pointer-events: auto; background: rgba(255,255,255,0.92); border: none; border-radius: 12px; padding: 10px 16px; cursor: pointer; font-size: 14px; font-weight: 700; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 6px; transition: transform 0.1s, background 0.1s; }
+  #game-toolbar button:hover { background: white; transform: scale(1.05); }
+  #game-toolbar button:active { transform: scale(0.97); }
+  #shop-toggle { background: linear-gradient(135deg, #FFD700, #FFA500) !important; color: white !important; font-size: 15px !important; padding: 12px 20px !important; }
+
   /* Shop Panel */
-  #shop-toggle { position: absolute; bottom: 24px; right: 200px; background: rgba(255,255,255,0.9); border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 6; display: flex; align-items: center; gap: 6px; }
-  #shop-toggle:hover { background: white; }
-  #shop-panel { position: absolute; bottom: 60px; right: 200px; width: 340px; max-height: 520px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
+  #shop-panel { position: absolute; bottom: 0; left: 0; right: 0; top: 0; width: 100%; max-height: 100%; background: rgba(255,255,255,0.97); border-radius: 0; box-shadow: none; z-index: 15; overflow-y: auto; display: none; backdrop-filter: blur(10px); }
   #shop-panel.open { display: block; }
-  #shop-panel-header { padding: 14px 16px 10px; font-size: 14px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  #shop-panel-header { padding: 16px 20px 12px; font-size: 18px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(255,255,255,0.97); z-index: 1; }
+  #shop-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; padding: 4px 8px; }
+  #shop-close:hover { color: #333; }
   .shop-coins { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #FFA500; }
   .shop-coins .coin-icon { width: 16px; height: 16px; background: radial-gradient(circle at 35% 35%, #FFD700, #FFA500); border-radius: 50%; border: 1.5px solid #E8A800; font-size: 8px; display: flex; align-items: center; justify-content: center; color: #A06800; }
   .shop-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.1s; }
@@ -135,11 +141,9 @@
   #minimap-toggle:hover { background: white; }
 
   /* Upgrade Panel */
-  #upgrade-toggle { position: absolute; bottom: 24px; right: 400px; background: rgba(255,255,255,0.9); border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 6; display: flex; align-items: center; gap: 6px; }
-  #upgrade-toggle:hover { background: white; }
-  #upgrade-panel { position: absolute; bottom: 60px; right: 400px; width: 320px; max-height: 460px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
+  #upgrade-panel { position: absolute; bottom: 0; left: 0; right: 0; top: 0; width: 100%; max-height: 100%; background: rgba(255,255,255,0.97); border-radius: 0; z-index: 15; overflow-y: auto; display: none; backdrop-filter: blur(10px); }
   #upgrade-panel.open { display: block; }
-  #upgrade-panel-header { padding: 14px 16px 10px; font-size: 14px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  #upgrade-panel-header { padding: 16px 20px 12px; font-size: 18px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(255,255,255,0.97); z-index: 1; }
   .upgrade-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.1s; }
   .upgrade-item:hover { background: #f8f8ff; }
   .upgrade-item.maxed { opacity: 0.45; pointer-events: none; }
@@ -158,6 +162,7 @@
   <h1>Alien Civilisation</h1>
   <p>Expand your empire. Eliminate rivals.</p>
   <button id="startBtn">Play</button>
+  <button id="overlay-shop-btn" style="margin-top:10px;padding:12px 48px;font-size:18px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA500);color:white;cursor:pointer;font-weight:bold;box-shadow:0 4px 16px rgba(255,165,0,0.3);transition:transform 0.1s;">🛒 Shop</button>
   <button id="overlay-profile-btn">Edit Profile</button>
   <div id="controls-hint">Mouse / WASD / Joystick</div>
 </div>
@@ -222,11 +227,24 @@
 
 <div id="kill-feed"></div>
 
-<button id="shop-toggle">🛒 Shop</button>
+<div id="ability-bar"></div>
+
+<div id="minimap-container"><canvas id="minimap" width="140" height="140"></canvas></div>
+
+<div id="game-toolbar">
+  <button id="shop-toggle">🛒 Shop</button>
+  <button id="upgrade-toggle">⬆️ Upgrades</button>
+  <button id="evo-toggle">🌳 Evo</button>
+  <button id="minimap-toggle">🗺️ Map</button>
+</div>
+
 <div id="shop-panel">
   <div id="shop-panel-header">
     <span>🛒 Shop</span>
-    <div class="shop-coins"><div class="coin-icon">$</div><span id="shop-coin-count">0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="shop-coins"><div class="coin-icon">$</div><span id="shop-coin-count">0</span></div>
+      <button id="shop-close">&times;</button>
+    </div>
   </div>
   <div class="shop-tabs">
     <div class="shop-tab active" data-tab="arsenal" onclick="switchShopTab('arsenal')">🛡️ Arsenal</div>
@@ -235,25 +253,23 @@
   <div id="shop-items"></div>
 </div>
 
-<div id="ability-bar"></div>
-
-<div id="minimap-container"><canvas id="minimap" width="160" height="160"></canvas></div>
-<button id="minimap-toggle">🗺️ Map</button>
-
-<button id="upgrade-toggle">⬆️ Upgrades</button>
 <div id="upgrade-panel">
   <div id="upgrade-panel-header">
     <span>⬆️ Upgrades</span>
-    <div class="shop-coins"><div class="coin-icon">$</div><span id="upgrade-coin-count">0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="shop-coins"><div class="coin-icon">$</div><span id="upgrade-coin-count">0</span></div>
+      <button id="upgrade-close" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;padding:4px 8px;">&times;</button>
+    </div>
   </div>
   <div id="upgrade-items"></div>
 </div>
-
-<button id="evo-toggle">🌳 Evo Tree</button>
 <div id="evo-panel">
   <div id="evo-panel-header">
     <span>🌳 Evolutionary Tree</span>
-    <span class="kardashev-legend">K-0 → K-III</span>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="kardashev-legend">K-0 → K-III</span>
+      <button onclick="closeEvo()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;padding:4px 8px;">&times;</button>
+    </div>
   </div>
   <div id="evo-tree-content"></div>
 </div>
@@ -600,11 +616,34 @@ let projectiles = [];
 let cooldowns = {};
 
 let shopOpen = false;
-document.getElementById('shop-toggle').onclick = () => {
-  shopOpen = !shopOpen;
-  document.getElementById('shop-panel').classList.toggle('open', shopOpen);
-  if (shopOpen) renderShop();
-};
+let gamePausedForUI = false;
+
+function openShop() {
+  shopOpen = true;
+  document.getElementById('shop-panel').classList.add('open');
+  renderShop();
+  pauseForUI();
+}
+function closeShop() {
+  shopOpen = false;
+  document.getElementById('shop-panel').classList.remove('open');
+  resumeFromUI();
+}
+function pauseForUI() {
+  if (gameRunning && !gamePausedForUI) {
+    gamePausedForUI = true;
+  }
+}
+function resumeFromUI() {
+  // Only resume if no panels are open
+  if (!shopOpen && !upgradeOpen && !evoTreeOpen) {
+    gamePausedForUI = false;
+  }
+}
+
+document.getElementById('shop-toggle').onclick = () => { shopOpen ? closeShop() : openShop(); };
+document.getElementById('shop-close').onclick = closeShop;
+document.getElementById('overlay-shop-btn').onclick = openShop;
 
 let currentShopTab = 'arsenal';
 
@@ -1201,11 +1240,19 @@ function buyUpgrade(id) {
 }
 
 let upgradeOpen = false;
-document.getElementById('upgrade-toggle').onclick = () => {
-  upgradeOpen = !upgradeOpen;
-  document.getElementById('upgrade-panel').classList.toggle('open', upgradeOpen);
-  if (upgradeOpen) renderUpgrades();
-};
+function openUpgrades() {
+  upgradeOpen = true;
+  document.getElementById('upgrade-panel').classList.add('open');
+  renderUpgrades();
+  pauseForUI();
+}
+function closeUpgrades() {
+  upgradeOpen = false;
+  document.getElementById('upgrade-panel').classList.remove('open');
+  resumeFromUI();
+}
+document.getElementById('upgrade-toggle').onclick = () => { upgradeOpen ? closeUpgrades() : openUpgrades(); };
+document.getElementById('upgrade-close').onclick = closeUpgrades;
 
 function renderUpgrades() {
   const container = document.getElementById('upgrade-items');
@@ -1398,10 +1445,17 @@ function assignPlanetsAndSpecies() {
 
 // ---- Evo Tree Panel ----
 let evoTreeOpen = false;
-document.getElementById('evo-toggle').onclick = () => {
-  evoTreeOpen = !evoTreeOpen;
-  document.getElementById('evo-panel').classList.toggle('open', evoTreeOpen);
-};
+function openEvo() {
+  evoTreeOpen = true;
+  document.getElementById('evo-panel').classList.add('open');
+  pauseForUI();
+}
+function closeEvo() {
+  evoTreeOpen = false;
+  document.getElementById('evo-panel').classList.remove('open');
+  resumeFromUI();
+}
+document.getElementById('evo-toggle').onclick = () => { evoTreeOpen ? closeEvo() : openEvo(); };
 
 function updateEvoTree() {
   if (!evoTreeOpen || !players || players.length === 0) return;
@@ -1481,11 +1535,24 @@ function updateEvoTree() {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const dpr = window.devicePixelRatio || 1;
+// Responsive canvas — fill the screen
+CONFIG.CANVAS_WIDTH = window.innerWidth;
+CONFIG.CANVAS_HEIGHT = window.innerHeight;
 canvas.width = CONFIG.CANVAS_WIDTH * dpr;
 canvas.height = CONFIG.CANVAS_HEIGHT * dpr;
-canvas.style.width = CONFIG.CANVAS_WIDTH + 'px';
-canvas.style.height = CONFIG.CANVAS_HEIGHT + 'px';
+canvas.style.width = '100vw';
+canvas.style.height = '100vh';
 ctx.scale(dpr, dpr);
+window.addEventListener('resize', () => {
+  CONFIG.CANVAS_WIDTH = window.innerWidth;
+  CONFIG.CANVAS_HEIGHT = window.innerHeight;
+  canvas.width = CONFIG.CANVAS_WIDTH * dpr;
+  canvas.height = CONFIG.CANVAS_HEIGHT * dpr;
+  canvas.style.width = '100vw';
+  canvas.style.height = '100vh';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+});
 
 const W = CONFIG.GRID_SIZE;
 const CX = W / 2, CY = W / 2; // arena center
@@ -2763,7 +2830,7 @@ function gameLoop(ts) {
   if (!gameRunning) return;
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
-  update(dt);
+  if (!gamePausedForUI) update(dt);
   render();
   animFrame = requestAnimationFrame(gameLoop);
 }
@@ -2800,8 +2867,10 @@ function initGame() {
 function startGame() {
   document.getElementById('overlay').style.display = 'none';
   closeProfile();
-  shopOpen = false;
-  document.getElementById('shop-panel').classList.remove('open');
+  closeShop();
+  closeUpgrades();
+  closeEvo();
+  gamePausedForUI = false;
   roundCoinsStart = profile.coins;
   roundSurvivalTime = 0;
   humanLives = HUMAN_MAX_LIVES;
