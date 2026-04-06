@@ -91,7 +91,7 @@
   /* Shop Panel */
   #shop-toggle { position: absolute; bottom: 24px; right: 200px; background: rgba(255,255,255,0.9); border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 6; display: flex; align-items: center; gap: 6px; }
   #shop-toggle:hover { background: white; }
-  #shop-panel { position: absolute; bottom: 60px; right: 200px; width: 300px; max-height: 440px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
+  #shop-panel { position: absolute; bottom: 60px; right: 200px; width: 340px; max-height: 520px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
   #shop-panel.open { display: block; }
   #shop-panel-header { padding: 14px 16px 10px; font-size: 14px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
   .shop-coins { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #FFA500; }
@@ -106,6 +106,13 @@
   .shop-item-desc { font-size: 10px; color: #999; margin-top: 1px; }
   .shop-item-price { font-size: 13px; font-weight: 700; color: #FFA500; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
   .shop-item-key { font-size: 9px; background: #eee; padding: 2px 5px; border-radius: 3px; color: #888; font-weight: 600; margin-left: 4px; }
+  .shop-tabs { display: flex; border-bottom: 1px solid #eee; }
+  .shop-tab { flex: 1; padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 700; color: #999; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .shop-tab:hover { color: #555; }
+  .shop-tab.active { color: #333; border-bottom-color: #4B7BFF; }
+  .shop-tab.rocket { color: #FF6348; }
+  .shop-tab.rocket.active { border-bottom-color: #FF6348; }
+  .shop-category-label { padding: 8px 16px 4px; font-size: 10px; color: #bbb; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
   /* Ability Bar */
   #ability-bar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 5; pointer-events: auto; }
@@ -216,8 +223,12 @@
 <button id="shop-toggle">🛒 Shop</button>
 <div id="shop-panel">
   <div id="shop-panel-header">
-    <span>🛒 Arsenal Shop</span>
+    <span>🛒 Shop</span>
     <div class="shop-coins"><div class="coin-icon">$</div><span id="shop-coin-count">0</span></div>
+  </div>
+  <div class="shop-tabs">
+    <div class="shop-tab active" data-tab="arsenal" onclick="switchShopTab('arsenal')">🛡️ Arsenal</div>
+    <div class="shop-tab rocket" data-tab="rocket" onclick="switchShopTab('rocket')">🚀 Rocket Shop</div>
   </div>
   <div id="shop-items"></div>
 </div>
@@ -330,6 +341,7 @@ function saveProfile() {
 }
 
 function addCoins(n) {
+  if (activeEffects && activeEffects.magnet_item) n *= 2; // Coin Doubler
   profile.coins += n;
   saveProfile();
   updateCoinDisplay();
@@ -538,11 +550,37 @@ document.getElementById('profile-modal').onclick = e => { if (e.target.id === 'p
 // SHOP + ABILITIES
 // ============================================================
 const SHOP_ITEMS = [
-  { id: 'spaceship',  icon: '\u{1F680}', name: 'Spaceship',       desc: 'Speed boost for 8s',                     price: 50,  key: '1', type: 'consumable', maxStack: 5 },
-  { id: 'miner',      icon: '\u26CF\uFE0F', name: 'Mining Drill',   desc: 'Auto-claim 3x3 around you for 10s',      price: 80,  key: '2', type: 'consumable', maxStack: 3 },
-  { id: 'shield',     icon: '\u{1F6E1}\uFE0F', name: 'Shield',       desc: 'Block one trail hit (lasts 12s)',         price: 100, key: '3', type: 'consumable', maxStack: 3 },
-  { id: 'missile',    icon: '\u{1F3AF}', name: 'Guided Missile',  desc: 'Launch at nearest enemy trail',           price: 65,  key: '4', type: 'consumable', maxStack: 5 },
-  { id: 'energy',     icon: '\u26A1',    name: 'Energy Burst',    desc: 'Instant capture current trail',           price: 120, key: '5', type: 'consumable', maxStack: 3 },
+  // ---- ARSENAL ----
+  { id: 'miner',      icon: '⛏️', name: 'Mining Drill',    desc: 'Auto-claim 3x3 around you for 10s',     price: 80,  category: 'arsenal', type: 'consumable', maxStack: 3 },
+  { id: 'shield',     icon: '🛡️', name: 'Shield',          desc: 'Block one trail hit (lasts 12s)',        price: 100, category: 'arsenal', type: 'consumable', maxStack: 3 },
+  { id: 'missile',    icon: '🎯', name: 'Guided Missile',  desc: 'Launch at nearest enemy trail',          price: 65,  category: 'arsenal', type: 'consumable', maxStack: 5 },
+  { id: 'energy',     icon: '⚡', name: 'Energy Burst',    desc: 'Instant capture current trail',          price: 120, category: 'arsenal', type: 'consumable', maxStack: 3 },
+  { id: 'teleport',   icon: '🌀', name: 'Teleporter',      desc: 'Teleport to random safe spot',           price: 90,  category: 'arsenal', type: 'consumable', maxStack: 3 },
+  { id: 'emp',        icon: '💥', name: 'EMP Blast',       desc: 'Clear all enemy trails in radius 12',    price: 110, category: 'arsenal', type: 'consumable', maxStack: 2 },
+  { id: 'terrbomb',   icon: '💣', name: 'Territory Bomb',  desc: 'Claim 5x5 area around you',              price: 75,  category: 'arsenal', type: 'consumable', maxStack: 5 },
+  { id: 'cloak',      icon: '👻', name: 'Stealth Cloak',   desc: 'Invisible for 6s — enemies ignore you',  price: 140, category: 'arsenal', type: 'consumable', maxStack: 2 },
+  { id: 'eraser',     icon: '🧹', name: 'Trail Eraser',    desc: 'Safely erase your current trail',        price: 45,  category: 'arsenal', type: 'consumable', maxStack: 5 },
+  { id: 'gravity',    icon: '🕳️', name: 'Gravity Well',    desc: 'Pull nearby enemies toward you for 5s',  price: 130, category: 'arsenal', type: 'consumable', maxStack: 2 },
+  { id: 'decoy',      icon: '🤖', name: 'Decoy',           desc: 'Spawn a fake player to distract bots',   price: 60,  category: 'arsenal', type: 'consumable', maxStack: 3 },
+  { id: 'magnet_item',icon: '🧲', name: 'Coin Doubler',    desc: 'Double coins earned for 15s',            price: 150, category: 'arsenal', type: 'consumable', maxStack: 2 },
+  { id: 'freeze',     icon: '🧊', name: 'Freeze Ray',      desc: 'Slow all enemies by 50% for 5s',        price: 160, category: 'arsenal', type: 'consumable', maxStack: 2 },
+  { id: 'heal',       icon: '💚', name: 'Regenerator',     desc: 'Restore territory lost in last 10s',     price: 200, category: 'arsenal', type: 'consumable', maxStack: 1 },
+
+  // ---- ROCKET SHOP ----
+  { id: 'spaceship',  icon: '🚀', name: 'Basic Rocket',    desc: 'Speed ×1.5 for 6s',                     price: 40,  category: 'rocket',  type: 'consumable', maxStack: 5 },
+  { id: 'turbo',      icon: '🔥', name: 'Turbo Rocket',    desc: 'Speed ×1.7 for 8s',                     price: 65,  category: 'rocket',  type: 'consumable', maxStack: 5 },
+  { id: 'megarocket', icon: '☄️', name: 'Mega Rocket',     desc: 'Speed ×2.0 for 12s',                    price: 120, category: 'rocket',  type: 'consumable', maxStack: 3 },
+  { id: 'hyperrocket',icon: '⚡', name: 'Hyper Rocket',    desc: 'Speed ×2.5 for 6s — blazing!',          price: 150, category: 'rocket',  type: 'consumable', maxStack: 3 },
+  { id: 'warp',       icon: '💫', name: 'Warp Drive',      desc: 'Teleport 15 cells forward instantly',    price: 80,  category: 'rocket',  type: 'consumable', maxStack: 5 },
+  { id: 'ion',        icon: '🌟', name: 'Ion Thruster',    desc: 'Gradual speed ramp ×1→×2 over 15s',     price: 90,  category: 'rocket',  type: 'consumable', maxStack: 3 },
+  { id: 'plasma',     icon: '🟣', name: 'Plasma Jet',      desc: 'Speed ×1.8 + wider trail for 8s',       price: 100, category: 'rocket',  type: 'consumable', maxStack: 3 },
+  { id: 'comet',      icon: '🌠', name: 'Comet Dash',      desc: 'Ultra-fast ×3 for 3s — fire trail!',    price: 180, category: 'rocket',  type: 'consumable', maxStack: 2 },
+  { id: 'swarm',      icon: '🎆', name: 'Rocket Swarm',    desc: 'Launch 3 missiles at once',              price: 200, category: 'rocket',  type: 'consumable', maxStack: 3 },
+  { id: 'orbital',    icon: '🛰️', name: 'Orbital Strike',  desc: 'Claim large ring around nearest enemy', price: 250, category: 'rocket',  type: 'consumable', maxStack: 2 },
+  { id: 'starcruiser',icon: '🛸', name: 'Star Cruiser',    desc: 'Speed ×1.5 + shield for 20s',           price: 300, category: 'rocket',  type: 'consumable', maxStack: 1 },
+  { id: 'nova',       icon: '🌞', name: 'Nova Explosion',  desc: 'Clear 10-cell radius of enemy territory',price: 220, category: 'rocket',  type: 'consumable', maxStack: 2 },
+  { id: 'blackhole',  icon: '🕳️', name: 'Black Hole Bomb', desc: 'Suck enemy territory into void',        price: 350, category: 'rocket',  type: 'consumable', maxStack: 1 },
+  { id: 'mothership', icon: '👾', name: 'Mothership',      desc: 'Speed ×2 + shield + 3 missiles (15s)',  price: 500, category: 'rocket',  type: 'consumable', maxStack: 1 },
 ];
 
 // Inventory: { itemId: count }
@@ -561,25 +599,34 @@ document.getElementById('shop-toggle').onclick = () => {
   if (shopOpen) renderShop();
 };
 
+let currentShopTab = 'arsenal';
+
+function switchShopTab(tab) {
+  currentShopTab = tab;
+  document.querySelectorAll('.shop-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  renderShop();
+}
+
 function renderShop() {
   const container = document.getElementById('shop-items');
   document.getElementById('shop-coin-count').textContent = profile.coins;
+  const items = SHOP_ITEMS.filter(i => i.category === currentShopTab);
   let html = '';
-  for (const item of SHOP_ITEMS) {
+  for (const item of items) {
     const count = inventory[item.id] || 0;
     const full = count >= item.maxStack;
     const cantAfford = profile.coins < item.price;
     let cls = 'shop-item';
     if (full) cls += ' owned';
     else if (cantAfford) cls += ' cant-afford';
+    const bg = currentShopTab === 'rocket' ? (cantAfford ? '#f0f0f0' : '#fff5f0') : (cantAfford ? '#f0f0f0' : '#f0f8ff');
     html += `<div class="${cls}" onclick="buyItem('${item.id}')">
-      <div class="shop-item-icon" style="background:${cantAfford ? '#f0f0f0' : '#f0f8ff'}">${item.icon}</div>
+      <div class="shop-item-icon" style="background:${bg}">${item.icon}</div>
       <div class="shop-item-info">
-        <div class="shop-item-name">${item.name} ${full ? '(MAX)' : ''}</div>
+        <div class="shop-item-name">${item.name} ${full ? '(MAX)' : count > 0 ? '(×' + count + ')' : ''}</div>
         <div class="shop-item-desc">${item.desc}</div>
       </div>
       <div class="shop-item-price"><div class="coin-icon" style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFD700,#FFA500);border:1.5px solid #E8A800;font-size:7px;display:flex;align-items:center;justify-content:center;color:#A06800">$</div>${item.price}</div>
-      <span class="shop-item-key">${item.key}</span>
     </div>`;
   }
   container.innerHTML = html;
@@ -601,8 +648,10 @@ function buyItem(id) {
 
 function renderAbilityBar() {
   const bar = document.getElementById('ability-bar');
+  // Show owned items + active effects (up to 10 slots)
+  const owned = SHOP_ITEMS.filter(i => (inventory[i.id] || 0) > 0 || activeEffects[i.id] || (cooldowns[i.id] && cooldowns[i.id] > 0));
   let html = '';
-  for (const item of SHOP_ITEMS) {
+  owned.slice(0, 10).forEach((item, idx) => {
     const count = inventory[item.id] || 0;
     const cd = cooldowns[item.id] || 0;
     const active = !!activeEffects[item.id];
@@ -610,12 +659,16 @@ function renderAbilityBar() {
     if (count <= 0 && !active) cls += ' locked';
     if (active) cls += ' active';
     if (cd > 0) cls += ' cooldown';
+    const key = idx < 9 ? '' + (idx + 1) : '0';
     html += `<div class="${cls}" onclick="useAbility('${item.id}')" title="${item.name}">
       <span class="ab-icon">${item.icon}</span>
-      <span class="ab-key">${item.key}</span>
+      <span class="ab-key">${key}</span>
       ${count > 0 ? `<span class="ab-count">${count}</span>` : ''}
       <div class="ab-cd-overlay">${cd > 0 ? cd.toFixed(0) + 's' : ''}</div>
     </div>`;
+  });
+  if (owned.length === 0) {
+    html = '<div style="color:#ccc;font-size:11px;padding:8px 16px;background:rgba(255,255,255,0.7);border-radius:8px;">Buy items from the Shop!</div>';
   }
   bar.innerHTML = html;
 }
@@ -633,12 +686,10 @@ function useAbility(id) {
 
   inventory[item.id] = count - 1;
 
+  const baseSpeed = CONFIG.PLAYER_SPEED * UPGRADES.find(u => u.id === 'speed').effect(getUpgradeLevel('speed'));
+
   switch (id) {
-    case 'spaceship':
-      activeEffects.spaceship = { timer: 8 };
-      human.speed = CONFIG.PLAYER_SPEED * UPGRADES.find(u => u.id === 'speed').effect(getUpgradeLevel('speed')) * 1.7;
-      cooldowns.spaceship = 8;
-      break;
+    // ---- ARSENAL ----
     case 'miner':
       activeEffects.miner = { timer: 10 };
       cooldowns.miner = 10;
@@ -652,7 +703,6 @@ function useAbility(id) {
       cooldowns.missile = 2;
       break;
     case 'energy':
-      // Instant capture of current trail
       if (human.trail.length > 1) {
         captureTerritory(human);
         addKillNotif('Energy Burst: trail captured!');
@@ -661,6 +711,240 @@ function useAbility(id) {
         inventory[item.id] = count; // refund
       }
       cooldowns.energy = 3;
+      break;
+    case 'teleport': {
+      let tx, ty;
+      for (let a = 0; a < 50; a++) {
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 10 + Math.random() * (R - 20);
+        tx = CX + Math.cos(ang) * dist;
+        ty = CY + Math.sin(ang) * dist;
+        if (isInArena(Math.floor(tx), Math.floor(ty)) && isOwn(human, Math.floor(tx), Math.floor(ty))) break;
+      }
+      human.x = tx; human.y = ty;
+      human.trail = []; human.trailPts = []; human.trailSet.clear();
+      addKillNotif('Teleported!');
+      cooldowns.teleport = 5;
+      break;
+    }
+    case 'emp': {
+      let cleared = 0;
+      for (const p of players) {
+        if (p === human || !p.alive) continue;
+        const d = Math.sqrt(distSq(human.x, human.y, p.x, p.y));
+        if (d < 12) {
+          p.trail = []; p.trailPts = []; p.trailSet.clear();
+          cleared++;
+        }
+      }
+      addKillNotif(`EMP: cleared ${cleared} enemy trails!`);
+      cooldowns.emp = 8;
+      break;
+    }
+    case 'terrbomb': {
+      const cx = human.cx, cy = human.cy;
+      let gained = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const gx = cx + dx, gy = cy + dy;
+          if (inBounds(gx, gy) && isInArena(gx, gy) && getCell(gx, gy) !== human.id && getCell(gx, gy) !== -1) {
+            setCell(gx, gy, human.id); gained++;
+          }
+        }
+      }
+      if (gained > 0) terDirty = true;
+      addKillNotif(`Territory Bomb: +${gained} cells!`);
+      cooldowns.terrbomb = 3;
+      break;
+    }
+    case 'cloak':
+      activeEffects.cloak = { timer: 6 };
+      cooldowns.cloak = 6;
+      addKillNotif('Cloaked!');
+      break;
+    case 'eraser':
+      human.trail = []; human.trailPts = []; human.trailSet.clear();
+      addKillNotif('Trail erased!');
+      cooldowns.eraser = 2;
+      break;
+    case 'gravity':
+      activeEffects.gravity = { timer: 5 };
+      cooldowns.gravity = 8;
+      addKillNotif('Gravity Well active!');
+      break;
+    case 'decoy': {
+      const da = Math.random() * Math.PI * 2;
+      const ddist = 8;
+      const dx = human.x + Math.cos(da) * ddist;
+      const dy = human.y + Math.sin(da) * ddist;
+      activeEffects.decoy = { timer: 10, x: dx, y: dy, angle: Math.random() * Math.PI * 2 };
+      cooldowns.decoy = 12;
+      addKillNotif('Decoy deployed!');
+      break;
+    }
+    case 'magnet_item':
+      activeEffects.magnet_item = { timer: 15 };
+      cooldowns.magnet_item = 15;
+      addKillNotif('Coin Doubler active!');
+      break;
+    case 'freeze':
+      activeEffects.freeze = { timer: 5 };
+      cooldowns.freeze = 10;
+      // Slow all bots
+      for (const p of players) {
+        if (p.isBot && p.alive) { p._origSpeed = p.speed; p.speed *= 0.5; }
+      }
+      addKillNotif('Freeze Ray: enemies slowed!');
+      break;
+    case 'heal': {
+      // Restore territory — reclaim cells that were recently lost
+      const cx = human.cx, cy = human.cy;
+      let restored = 0;
+      for (let dy = -8; dy <= 8; dy++) {
+        for (let dx = -8; dx <= 8; dx++) {
+          if (dx*dx + dy*dy > 64) continue;
+          const gx = cx + dx, gy = cy + dy;
+          if (inBounds(gx, gy) && isInArena(gx, gy) && getCell(gx, gy) === 0) {
+            setCell(gx, gy, human.id); restored++;
+          }
+        }
+      }
+      if (restored > 0) terDirty = true;
+      addKillNotif(`Regenerated ${restored} cells!`);
+      cooldowns.heal = 15;
+      break;
+    }
+
+    // ---- ROCKET SHOP ----
+    case 'spaceship':
+      activeEffects.spaceship = { timer: 6 };
+      human.speed = baseSpeed * 1.5;
+      cooldowns.spaceship = 6;
+      break;
+    case 'turbo':
+      activeEffects.turbo = { timer: 8, speedMult: 1.7 };
+      human.speed = baseSpeed * 1.7;
+      cooldowns.turbo = 8;
+      break;
+    case 'megarocket':
+      activeEffects.megarocket = { timer: 12, speedMult: 2.0 };
+      human.speed = baseSpeed * 2.0;
+      cooldowns.megarocket = 12;
+      break;
+    case 'hyperrocket':
+      activeEffects.hyperrocket = { timer: 6, speedMult: 2.5 };
+      human.speed = baseSpeed * 2.5;
+      cooldowns.hyperrocket = 6;
+      break;
+    case 'warp': {
+      const wx = human.x + Math.cos(human.angle) * 15;
+      const wy = human.y + Math.sin(human.angle) * 15;
+      human.x = wx; human.y = wy;
+      clampToArena(human);
+      addKillNotif('Warp!');
+      cooldowns.warp = 3;
+      break;
+    }
+    case 'ion':
+      activeEffects.ion = { timer: 15, elapsed: 0 };
+      cooldowns.ion = 15;
+      addKillNotif('Ion Thruster engaged!');
+      break;
+    case 'plasma':
+      activeEffects.plasma = { timer: 8 };
+      human.speed = baseSpeed * 1.8;
+      cooldowns.plasma = 8;
+      addKillNotif('Plasma Jet!');
+      break;
+    case 'comet':
+      activeEffects.comet = { timer: 3 };
+      human.speed = baseSpeed * 3;
+      cooldowns.comet = 8;
+      addKillNotif('COMET DASH!');
+      break;
+    case 'swarm':
+      for (let si = 0; si < 3; si++) setTimeout(() => launchMissile(human), si * 300);
+      cooldowns.swarm = 5;
+      addKillNotif('Rocket Swarm launched!');
+      break;
+    case 'orbital': {
+      // Find nearest enemy and claim ring around them
+      let best = null, bestD = Infinity;
+      for (const p of players) {
+        if (p === human || !p.alive) continue;
+        const d = distSq(human.x, human.y, p.x, p.y);
+        if (d < bestD) { bestD = d; best = p; }
+      }
+      if (best) {
+        let gained = 0;
+        const cx = best.cx, cy = best.cy;
+        for (let dy = -6; dy <= 6; dy++) {
+          for (let dx = -6; dx <= 6; dx++) {
+            const r2 = dx*dx + dy*dy;
+            if (r2 > 36 || r2 < 9) continue; // ring only
+            const gx = cx + dx, gy = cy + dy;
+            if (inBounds(gx,gy) && isInArena(gx,gy) && getCell(gx,gy) !== -1) {
+              setCell(gx, gy, human.id); gained++;
+            }
+          }
+        }
+        if (gained > 0) terDirty = true;
+        addKillNotif(`Orbital Strike on ${best.name}!`);
+      } else {
+        inventory[item.id] = count; // refund
+        addKillNotif('No target!');
+      }
+      cooldowns.orbital = 10;
+      break;
+    }
+    case 'starcruiser':
+      activeEffects.starcruiser = { timer: 20 };
+      activeEffects.shield = { timer: 20, hits: 1 };
+      human.speed = baseSpeed * 1.5;
+      cooldowns.starcruiser = 20;
+      addKillNotif('Star Cruiser deployed!');
+      break;
+    case 'nova': {
+      let cleared = 0;
+      const cx = human.cx, cy = human.cy;
+      for (let dy = -10; dy <= 10; dy++) {
+        for (let dx = -10; dx <= 10; dx++) {
+          if (dx*dx + dy*dy > 100) continue;
+          const gx = cx + dx, gy = cy + dy;
+          if (inBounds(gx,gy) && getCell(gx,gy) > 0 && getCell(gx,gy) !== human.id) {
+            setCell(gx, gy, 0); cleared++;
+          }
+        }
+      }
+      if (cleared > 0) terDirty = true;
+      addKillNotif(`Nova: cleared ${cleared} enemy cells!`);
+      cooldowns.nova = 12;
+      break;
+    }
+    case 'blackhole': {
+      let sucked = 0;
+      const cx = human.cx, cy = human.cy;
+      for (let dy = -15; dy <= 15; dy++) {
+        for (let dx = -15; dx <= 15; dx++) {
+          if (dx*dx + dy*dy > 225) continue;
+          const gx = cx + dx, gy = cy + dy;
+          if (inBounds(gx,gy) && getCell(gx,gy) > 0 && getCell(gx,gy) !== human.id) {
+            setCell(gx, gy, human.id); sucked++;
+          }
+        }
+      }
+      if (sucked > 0) terDirty = true;
+      addKillNotif(`Black Hole: consumed ${sucked} cells!`);
+      cooldowns.blackhole = 15;
+      break;
+    }
+    case 'mothership':
+      activeEffects.mothership = { timer: 15 };
+      activeEffects.shield = { timer: 15, hits: 1 };
+      human.speed = baseSpeed * 2;
+      for (let si = 0; si < 3; si++) setTimeout(() => launchMissile(human), si * 500);
+      cooldowns.mothership = 20;
+      addKillNotif('MOTHERSHIP ACTIVATED!');
       break;
   }
   renderAbilityBar();
@@ -696,6 +980,7 @@ function launchMissile(human) {
 
 function updateAbilities(dt) {
   const human = players[0];
+  const baseSpeed = CONFIG.PLAYER_SPEED * UPGRADES.find(u => u.id === 'speed').effect(getUpgradeLevel('speed'));
 
   // Cooldowns
   for (const id of Object.keys(cooldowns)) {
@@ -705,12 +990,30 @@ function updateAbilities(dt) {
     }
   }
 
-  // Spaceship speed boost
-  if (activeEffects.spaceship) {
-    activeEffects.spaceship.timer -= dt;
-    if (activeEffects.spaceship.timer <= 0) {
-      delete activeEffects.spaceship;
-      if (human && human.alive) human.speed = CONFIG.PLAYER_SPEED * UPGRADES.find(u => u.id === 'speed').effect(getUpgradeLevel('speed'));
+  // Generic speed-boost effects — expire and reset speed
+  const speedEffects = ['spaceship','turbo','megarocket','hyperrocket','plasma','comet','starcruiser','mothership'];
+  for (const eid of speedEffects) {
+    if (activeEffects[eid]) {
+      activeEffects[eid].timer -= dt;
+      if (activeEffects[eid].timer <= 0) {
+        delete activeEffects[eid];
+        // Reset speed only if no other speed effect is active
+        if (human && human.alive && !speedEffects.some(e => activeEffects[e])) {
+          human.speed = baseSpeed;
+        }
+      }
+    }
+  }
+
+  // Ion thruster — gradual speed ramp
+  if (activeEffects.ion && human && human.alive) {
+    activeEffects.ion.timer -= dt;
+    activeEffects.ion.elapsed += dt;
+    const progress = Math.min(1, activeEffects.ion.elapsed / 15);
+    human.speed = baseSpeed * (1 + progress);
+    if (activeEffects.ion.timer <= 0) {
+      delete activeEffects.ion;
+      if (!speedEffects.some(e => activeEffects[e])) human.speed = baseSpeed;
     }
   }
 
@@ -737,6 +1040,53 @@ function updateAbilities(dt) {
   if (activeEffects.shield) {
     activeEffects.shield.timer -= dt;
     if (activeEffects.shield.timer <= 0) delete activeEffects.shield;
+  }
+
+  // Cloak timer
+  if (activeEffects.cloak) {
+    activeEffects.cloak.timer -= dt;
+    if (activeEffects.cloak.timer <= 0) delete activeEffects.cloak;
+  }
+
+  // Gravity well — pull enemies toward human
+  if (activeEffects.gravity && human && human.alive) {
+    activeEffects.gravity.timer -= dt;
+    for (const p of players) {
+      if (p === human || !p.alive) continue;
+      const d = Math.sqrt(distSq(human.x, human.y, p.x, p.y));
+      if (d < 15 && d > 1) {
+        const pull = 3 * dt / d;
+        p.x += (human.x - p.x) * pull;
+        p.y += (human.y - p.y) * pull;
+      }
+    }
+    if (activeEffects.gravity.timer <= 0) delete activeEffects.gravity;
+  }
+
+  // Decoy — moves around randomly
+  if (activeEffects.decoy) {
+    activeEffects.decoy.timer -= dt;
+    activeEffects.decoy.angle += (Math.random() - 0.5) * 2 * dt;
+    activeEffects.decoy.x += Math.cos(activeEffects.decoy.angle) * 3 * dt;
+    activeEffects.decoy.y += Math.sin(activeEffects.decoy.angle) * 3 * dt;
+    if (activeEffects.decoy.timer <= 0) delete activeEffects.decoy;
+  }
+
+  // Coin Doubler timer
+  if (activeEffects.magnet_item) {
+    activeEffects.magnet_item.timer -= dt;
+    if (activeEffects.magnet_item.timer <= 0) delete activeEffects.magnet_item;
+  }
+
+  // Freeze — restore speeds when done
+  if (activeEffects.freeze) {
+    activeEffects.freeze.timer -= dt;
+    if (activeEffects.freeze.timer <= 0) {
+      for (const p of players) {
+        if (p.isBot && p._origSpeed) { p.speed = p._origSpeed; delete p._origSpeed; }
+      }
+      delete activeEffects.freeze;
+    }
   }
 
   // Projectiles
@@ -793,12 +1143,15 @@ killPlayer = function(victim, killer) {
   _origKillPlayer(victim, killer);
 };
 
-// Key bindings for abilities (1-5)
+// Key bindings for abilities (1-9, 0)
 window.addEventListener('keydown', e => {
   if (!gameRunning) return;
-  const idx = parseInt(e.key);
-  if (idx >= 1 && idx <= SHOP_ITEMS.length) {
-    useAbility(SHOP_ITEMS[idx - 1].id);
+  const owned = SHOP_ITEMS.filter(i => (inventory[i.id] || 0) > 0 || activeEffects[i.id] || (cooldowns[i.id] && cooldowns[i.id] > 0));
+  let idx = -1;
+  if (e.key >= '1' && e.key <= '9') idx = parseInt(e.key) - 1;
+  else if (e.key === '0') idx = 9;
+  if (idx >= 0 && idx < owned.length) {
+    useAbility(owned[idx].id);
   }
 });
 
@@ -1270,7 +1623,9 @@ function spawnMapObjects() {
     }
     if (!ok) continue;
     const type = MAP_ASTEROID_TYPES[Math.floor(Math.random() * MAP_ASTEROID_TYPES.length)];
-    mapAsteroids.push({ type, x: Math.floor(x), y: Math.floor(y), mined: false, respawnTimer: 0 });
+    const num = Math.floor(Math.random() * 1000);
+    const tag = '#' + String(num).padStart(3, '0');
+    mapAsteroids.push({ type, x: Math.floor(x), y: Math.floor(y), mined: false, respawnTimer: 0, tag });
   }
 }
 
@@ -1312,7 +1667,7 @@ function updateMapObjects(dt) {
         if (!p.isBot) {
           const magnetMult = UPGRADES.find(u => u.id === 'magnet').effect(getUpgradeLevel('magnet'));
           addCoins(Math.floor(asteroid.type.mineReward * magnetMult));
-          addKillNotif(`Mined ${asteroid.type.name}! +${Math.floor(asteroid.type.mineReward * magnetMult)}`);
+          addKillNotif(`Mined ${asteroid.tag} ${asteroid.type.name}! +${Math.floor(asteroid.type.mineReward * magnetMult)}`);
         }
         break;
       }
@@ -1428,10 +1783,13 @@ function renderMapObjects(z, offX, offY) {
     }
     ctx.restore();
 
-    // Icon
+    // Icon + tag number
     ctx.font = `${Math.max(8, ar * 0.7)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(asteroid.type.icon, ax, ay + ar + 10);
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = '#666';
+    ctx.fillText(asteroid.tag, ax, ay + ar + 20);
   }
 }
 
@@ -2122,8 +2480,29 @@ function render() {
 
   // Players — colored squares + alien face for human
   if (alienSpriteDirty) rebuildAlienSprite();
+
+  // Render decoy if active
+  if (activeEffects.decoy) {
+    const dx = activeEffects.decoy.x * z + offX;
+    const dy = activeEffects.decoy.y * z + offY;
+    const dh = z * CONFIG.PLAYER_SIZE / 2;
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = players[0] ? players[0].color : '#999';
+    roundRect(ctx, dx - dh, dy - dh, dh*2, dh*2, dh*0.25);
+    ctx.fill();
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#999';
+    ctx.fillText('🤖 Decoy', dx, dy - dh - 6);
+    ctx.globalAlpha = 1;
+  }
+
   for (const p of players) {
     if (!p.alive) continue;
+
+    // Cloak makes human nearly invisible
+    if (!p.isBot && activeEffects.cloak) ctx.globalAlpha = 0.15;
+
     const px = p.x * z + offX;
     const py = p.y * z + offY;
     const half = z * CONFIG.PLAYER_SIZE / 2;
@@ -2201,6 +2580,26 @@ function render() {
       ctx.strokeRect(px - z*1.5, py - z*1.5, z*3, z*3);
       ctx.setLineDash([]);
     }
+
+    // Gravity well visual
+    if (!p.isBot && activeEffects.gravity) {
+      ctx.beginPath();
+      ctx.arc(px, py, 15 * z, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(128,0,255,${0.2 + 0.1 * Math.sin(performance.now() / 200)})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Coin Doubler sparkle
+    if (!p.isBot && activeEffects.magnet_item) {
+      ctx.font = '10px sans-serif';
+      ctx.fillText('×2', px + half + 4, py - half);
+    }
+
+    // Reset cloak alpha
+    if (!p.isBot && activeEffects.cloak) ctx.globalAlpha = 1;
   }
 
   // Projectiles (missiles)
