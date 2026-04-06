@@ -538,11 +538,11 @@ document.getElementById('profile-modal').onclick = e => { if (e.target.id === 'p
 // SHOP + ABILITIES
 // ============================================================
 const SHOP_ITEMS = [
-  { id: 'spaceship',  icon: '\u{1F680}', name: 'Spaceship',       desc: 'Speed boost for 8s',                     price: 15,  key: '1', type: 'consumable', maxStack: 5 },
-  { id: 'miner',      icon: '\u26CF\uFE0F', name: 'Mining Drill',   desc: 'Auto-claim 3x3 around you for 10s',      price: 25,  key: '2', type: 'consumable', maxStack: 3 },
-  { id: 'shield',     icon: '\u{1F6E1}\uFE0F', name: 'Shield',       desc: 'Block one trail hit (lasts 12s)',         price: 30,  key: '3', type: 'consumable', maxStack: 3 },
-  { id: 'missile',    icon: '\u{1F3AF}', name: 'Guided Missile',  desc: 'Launch at nearest enemy trail',           price: 20,  key: '4', type: 'consumable', maxStack: 5 },
-  { id: 'energy',     icon: '\u26A1',    name: 'Energy Burst',    desc: 'Instant capture current trail',           price: 35,  key: '5', type: 'consumable', maxStack: 3 },
+  { id: 'spaceship',  icon: '\u{1F680}', name: 'Spaceship',       desc: 'Speed boost for 8s',                     price: 50,  key: '1', type: 'consumable', maxStack: 5 },
+  { id: 'miner',      icon: '\u26CF\uFE0F', name: 'Mining Drill',   desc: 'Auto-claim 3x3 around you for 10s',      price: 80,  key: '2', type: 'consumable', maxStack: 3 },
+  { id: 'shield',     icon: '\u{1F6E1}\uFE0F', name: 'Shield',       desc: 'Block one trail hit (lasts 12s)',         price: 100, key: '3', type: 'consumable', maxStack: 3 },
+  { id: 'missile',    icon: '\u{1F3AF}', name: 'Guided Missile',  desc: 'Launch at nearest enemy trail',           price: 65,  key: '4', type: 'consumable', maxStack: 5 },
+  { id: 'energy',     icon: '\u26A1',    name: 'Energy Burst',    desc: 'Instant capture current trail',           price: 120, key: '5', type: 'consumable', maxStack: 3 },
 ];
 
 // Inventory: { itemId: count }
@@ -806,12 +806,12 @@ window.addEventListener('keydown', e => {
 // PERSISTENT UPGRADES (saved to profile, carry across games)
 // ============================================================
 const UPGRADES = [
-  { id: 'speed',     icon: '💨', name: 'Swift Tentacles',    desc: 'Move faster',                  maxLevel: 5, baseCost: 20,  costScale: 1.8, effect: (lvl) => 1 + lvl * 0.08 },
-  { id: 'territory', icon: '🏠', name: 'Expansionist',       desc: 'Larger starting territory',     maxLevel: 5, baseCost: 25,  costScale: 1.7, effect: (lvl) => 3 + lvl },
-  { id: 'capture',   icon: '⚡', name: 'Rapid Assimilation', desc: 'Bonus coins per capture',       maxLevel: 5, baseCost: 30,  costScale: 1.8, effect: (lvl) => lvl },
-  { id: 'armor',     icon: '🛡️', name: 'Thick Membrane',     desc: 'Brief invincibility on respawn', maxLevel: 3, baseCost: 40,  costScale: 2.0, effect: (lvl) => lvl * 1.5 },
-  { id: 'vision',    icon: '👁️', name: 'Far Sight',          desc: 'Zoom out further',              maxLevel: 4, baseCost: 15,  costScale: 1.6, effect: (lvl) => 1 - lvl * 0.08 },
-  { id: 'magnet',    icon: '🧲', name: 'Coin Magnet',        desc: 'Earn more coins from kills',    maxLevel: 5, baseCost: 20,  costScale: 1.7, effect: (lvl) => 1 + lvl * 0.3 },
+  { id: 'speed',     icon: '💨', name: 'Swift Tentacles',    desc: 'Move faster',                  maxLevel: 5, baseCost: 75,  costScale: 1.8, effect: (lvl) => 1 + lvl * 0.08 },
+  { id: 'territory', icon: '🏠', name: 'Expansionist',       desc: 'Larger starting territory',     maxLevel: 5, baseCost: 90,  costScale: 1.7, effect: (lvl) => 3 + lvl },
+  { id: 'capture',   icon: '⚡', name: 'Rapid Assimilation', desc: 'Bonus coins per capture',       maxLevel: 5, baseCost: 100, costScale: 1.8, effect: (lvl) => lvl * 2 },
+  { id: 'armor',     icon: '🛡️', name: 'Thick Membrane',     desc: 'Brief invincibility on respawn', maxLevel: 3, baseCost: 150, costScale: 2.0, effect: (lvl) => lvl * 1.5 },
+  { id: 'vision',    icon: '👁️', name: 'Far Sight',          desc: 'Zoom out further',              maxLevel: 4, baseCost: 60,  costScale: 1.6, effect: (lvl) => 1 - lvl * 0.08 },
+  { id: 'magnet',    icon: '🧲', name: 'Coin Magnet',        desc: 'Earn more coins from kills',    maxLevel: 5, baseCost: 80,  costScale: 1.7, effect: (lvl) => 1 + lvl * 0.3 },
 ];
 
 function getUpgradeLevel(id) {
@@ -948,6 +948,9 @@ function renderMinimap() {
       mc.globalAlpha = 1;
     }
   }
+
+  // Map objects on minimap
+  renderMapObjectsMinimap(scale, ox, oy);
 
   // Camera viewport rectangle
   const human = players[0];
@@ -1202,6 +1205,268 @@ function clampToArena(p) {
 }
 
 // ============================================================
+// MAP OBJECTS — Planets & Asteroids to colonise and mine
+// ============================================================
+const MAP_PLANET_TYPES = [
+  { name: 'Lava World',   icon: '🌋', color: '#FF6B4A', radius: 5, income: 8,  mineReward: 0 },
+  { name: 'Ocean World',  icon: '🌊', color: '#4BA3FF', radius: 5, income: 6,  mineReward: 0 },
+  { name: 'Forest World', icon: '🌿', color: '#2ECC71', radius: 4, income: 7,  mineReward: 0 },
+  { name: 'Ice World',    icon: '❄️', color: '#88CCFF', radius: 4, income: 5,  mineReward: 0 },
+  { name: 'Crystal World',icon: '💎', color: '#A55EEA', radius: 3, income: 10, mineReward: 0 },
+  { name: 'Desert World', icon: '🏜️', color: '#FECA57', radius: 4, income: 6,  mineReward: 0 },
+];
+
+const MAP_ASTEROID_TYPES = [
+  { name: 'Iron Asteroid',    icon: '☄️', color: '#888', radius: 1.5, mineReward: 15, respawnTime: 20 },
+  { name: 'Gold Asteroid',    icon: '✨', color: '#FFD700', radius: 1.5, mineReward: 30, respawnTime: 35 },
+  { name: 'Crystal Asteroid', icon: '💠', color: '#88EEFF', radius: 1.8, mineReward: 50, respawnTime: 50 },
+];
+
+let mapPlanets = [];  // { type, x, y, owner: playerId or 0, colonized: bool }
+let mapAsteroids = []; // { type, x, y, mined: bool, respawnTimer }
+
+function spawnMapObjects() {
+  mapPlanets = [];
+  mapAsteroids = [];
+
+  // Spawn 5-7 planets scattered across the arena
+  const planetCount = 5 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < planetCount; i++) {
+    let x, y, ok;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = 15 + Math.random() * (R - 25);
+      x = CX + Math.cos(a) * d;
+      y = CY + Math.sin(a) * d;
+      ok = true;
+      // Check distance from other planets
+      for (const p of mapPlanets) {
+        if (distSq(x, y, p.x, p.y) < 20 * 20) { ok = false; break; }
+      }
+      if (ok) break;
+    }
+    if (!ok) continue;
+    const type = MAP_PLANET_TYPES[i % MAP_PLANET_TYPES.length];
+    mapPlanets.push({ type, x: Math.floor(x), y: Math.floor(y), owner: 0, colonized: false });
+  }
+
+  // Spawn 10-15 asteroids
+  const asteroidCount = 10 + Math.floor(Math.random() * 6);
+  for (let i = 0; i < asteroidCount; i++) {
+    let x, y, ok;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = 10 + Math.random() * (R - 15);
+      x = CX + Math.cos(a) * d;
+      y = CY + Math.sin(a) * d;
+      ok = true;
+      for (const p of mapPlanets) {
+        if (distSq(x, y, p.x, p.y) < 10 * 10) { ok = false; break; }
+      }
+      for (const a2 of mapAsteroids) {
+        if (distSq(x, y, a2.x, a2.y) < 8 * 8) { ok = false; break; }
+      }
+      if (ok) break;
+    }
+    if (!ok) continue;
+    const type = MAP_ASTEROID_TYPES[Math.floor(Math.random() * MAP_ASTEROID_TYPES.length)];
+    mapAsteroids.push({ type, x: Math.floor(x), y: Math.floor(y), mined: false, respawnTimer: 0 });
+  }
+}
+
+function updateMapObjects(dt) {
+  const human = players[0];
+
+  // Check planet colonization — a planet is colonized by whoever owns the territory at its center
+  for (const planet of mapPlanets) {
+    const cellVal = inBounds(planet.x, planet.y) ? getCell(planet.x, planet.y) : 0;
+    if (cellVal > 0) {
+      planet.owner = cellVal;
+      planet.colonized = true;
+    } else {
+      planet.owner = 0;
+      planet.colonized = false;
+    }
+  }
+
+  // Planet income (every 5 seconds, tied to territory income timer)
+  // Handled in the passive income section of update()
+
+  // Asteroid mining — if a player moves within range of an unmined asteroid
+  for (const asteroid of mapAsteroids) {
+    if (asteroid.mined) {
+      asteroid.respawnTimer -= dt;
+      if (asteroid.respawnTimer <= 0) {
+        asteroid.mined = false;
+        asteroid.respawnTimer = 0;
+      }
+      continue;
+    }
+    // Check if any alive player is near
+    for (const p of players) {
+      if (!p.alive) continue;
+      const d = Math.sqrt(distSq(p.x, p.y, asteroid.x, asteroid.y));
+      if (d < asteroid.type.radius + 1.5) {
+        asteroid.mined = true;
+        asteroid.respawnTimer = asteroid.type.respawnTime;
+        if (!p.isBot) {
+          const magnetMult = UPGRADES.find(u => u.id === 'magnet').effect(getUpgradeLevel('magnet'));
+          addCoins(Math.floor(asteroid.type.mineReward * magnetMult));
+          addKillNotif(`Mined ${asteroid.type.name}! +${Math.floor(asteroid.type.mineReward * magnetMult)}`);
+        }
+        break;
+      }
+    }
+  }
+}
+
+function getColonizedPlanetIncome() {
+  let income = 0;
+  const human = players[0];
+  if (!human) return 0;
+  for (const planet of mapPlanets) {
+    if (planet.owner === human.id) {
+      income += planet.type.income;
+    }
+  }
+  return income;
+}
+
+function renderMapObjects(z, offX, offY) {
+  // Render planets
+  for (const planet of mapPlanets) {
+    const px = planet.x * z + offX;
+    const py = planet.y * z + offY;
+    const r = planet.type.radius * z;
+
+    // Planet body — glowing circle
+    const grad = ctx.createRadialGradient(px - r*0.2, py - r*0.2, r*0.1, px, py, r);
+    grad.addColorStop(0, planet.type.color + 'CC');
+    grad.addColorStop(0.7, planet.type.color);
+    grad.addColorStop(1, darken(planet.type.color, 40));
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Atmosphere ring
+    ctx.beginPath();
+    ctx.arc(px, py, r * 1.2, 0, Math.PI * 2);
+    ctx.strokeStyle = planet.type.color + '30';
+    ctx.lineWidth = r * 0.3;
+    ctx.stroke();
+
+    // Highlight
+    ctx.beginPath();
+    ctx.arc(px - r*0.2, py - r*0.3, r * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fill();
+
+    // Colonization indicator
+    if (planet.colonized && planet.owner > 0) {
+      const ownerP = players[planet.owner - 1];
+      if (ownerP) {
+        ctx.beginPath();
+        ctx.arc(px, py, r * 1.4, 0, Math.PI * 2);
+        ctx.strokeStyle = ownerP.color + '80';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Icon + name label
+    ctx.font = `${Math.max(10, r * 0.8)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(planet.type.icon, px, py + r * 0.3);
+
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#555';
+    ctx.fillText(planet.type.name, px, py + r + 12);
+    if (planet.colonized && planet.owner > 0) {
+      ctx.font = '8px sans-serif';
+      ctx.fillStyle = '#FFA500';
+      ctx.fillText(`+${planet.type.income}/5s`, px, py + r + 22);
+    }
+  }
+
+  // Render asteroids
+  for (const asteroid of mapAsteroids) {
+    if (asteroid.mined) continue; // hidden when mined
+    const ax = asteroid.x * z + offX;
+    const ay = asteroid.y * z + offY;
+    const ar = asteroid.type.radius * z;
+
+    // Asteroid body — irregular shape via rotating pentagon
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.rotate(performance.now() / 3000 + asteroid.x); // slow spin
+    ctx.beginPath();
+    for (let i = 0; i < 7; i++) {
+      const angle = (i / 7) * Math.PI * 2;
+      const jitter = 0.7 + Math.sin(i * 2.3 + asteroid.y) * 0.3;
+      const rx = Math.cos(angle) * ar * jitter;
+      const ry = Math.sin(angle) * ar * jitter;
+      if (i === 0) ctx.moveTo(rx, ry);
+      else ctx.lineTo(rx, ry);
+    }
+    ctx.closePath();
+    ctx.fillStyle = asteroid.type.color;
+    ctx.fill();
+    ctx.strokeStyle = darken(asteroid.type.color, 30);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Sparkle for gold/crystal asteroids
+    if (asteroid.type.mineReward >= 30) {
+      const sparkleA = Math.sin(performance.now() / 400 + asteroid.x * 7) * 0.5 + 0.5;
+      ctx.beginPath();
+      ctx.arc(ar * 0.3, -ar * 0.2, 2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,200,${sparkleA})`;
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Icon
+    ctx.font = `${Math.max(8, ar * 0.7)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(asteroid.type.icon, ax, ay + ar + 10);
+  }
+}
+
+function renderMapObjectsMinimap(scale, ox, oy) {
+  const mc = minimapCtx;
+  // Planets on minimap
+  for (const planet of mapPlanets) {
+    const px = planet.x * scale + ox;
+    const py = planet.y * scale + oy;
+    mc.beginPath();
+    mc.arc(px, py, Math.max(3, planet.type.radius * scale * 0.8), 0, Math.PI * 2);
+    mc.fillStyle = planet.type.color + '99';
+    mc.fill();
+    if (planet.colonized && planet.owner > 0) {
+      const ownerP = players[planet.owner - 1];
+      if (ownerP) {
+        mc.strokeStyle = ownerP.color;
+        mc.lineWidth = 1.5;
+        mc.stroke();
+      }
+    }
+  }
+  // Asteroids on minimap (small dots)
+  for (const asteroid of mapAsteroids) {
+    if (asteroid.mined) continue;
+    const ax = asteroid.x * scale + ox;
+    const ay = asteroid.y * scale + oy;
+    mc.beginPath();
+    mc.arc(ax, ay, 1.5, 0, Math.PI * 2);
+    mc.fillStyle = asteroid.type.color;
+    mc.fill();
+  }
+}
+
+// ============================================================
 // PLAYER
 // ============================================================
 function createPlayer(index, name, isBot, colorOverride) {
@@ -1338,7 +1603,7 @@ function captureTerritory(p) {
   // Coin reward for territory capture (human only) — capture upgrade adds bonus
   if (!p.isBot && gained > 0) {
     const captureBonus = UPGRADES.find(u => u.id === 'capture').effect(getUpgradeLevel('capture'));
-    const reward = Math.max(1, Math.floor(gained / 8)) + captureBonus;
+    const reward = Math.max(2, Math.floor(gained / 3)) + captureBonus;
     addCoins(reward);
   }
 
@@ -1385,7 +1650,7 @@ function killPlayer(victim, killer) {
     if (!killer.isBot) {
       addKillNotif(`Eliminated ${victim.name}!`);
       const magnetMult = UPGRADES.find(u => u.id === 'magnet').effect(getUpgradeLevel('magnet'));
-      addCoins(Math.floor(10 * magnetMult));
+      addCoins(Math.floor(30 * magnetMult));
     } else if (!victim.isBot) {
       addKillNotif(`Eliminated by ${killer.name}`);
     }
@@ -1609,6 +1874,23 @@ function update(dt) {
     if (human._invincible <= 0) human._invincible = 0;
   }
 
+  // Survival time tracking
+  if (human && human.alive) roundSurvivalTime += dt;
+
+  // Passive territory income — earn coins for holding territory (every 5 seconds)
+  if (human && human.alive) {
+    if (!this._lastIncomeTime) this._lastIncomeTime = 0;
+    this._lastIncomeTime += dt;
+    if (this._lastIncomeTime >= 5) {
+      this._lastIncomeTime = 0;
+      const arenaArea = countArenaArea();
+      const pctHeld = arenaArea > 0 ? (human.territoryCount / arenaArea) * 100 : 0;
+      const planetIncome = getColonizedPlanetIncome();
+      const income = Math.floor(pctHeld * 0.5) + planetIncome; // territory + planet income
+      if (income > 0) addCoins(income);
+    }
+  }
+
   // Human direction
   if (human && human.alive) {
     const a = getPlayerAngle(human);
@@ -1659,8 +1941,9 @@ function update(dt) {
     }
   }
 
-  // Abilities
+  // Abilities & map objects
   updateAbilities(dt);
+  updateMapObjects(dt);
 
   // Check if human is dead
   if (human && !human.alive && !human.isBot) gameOver();
@@ -1812,6 +2095,9 @@ function render() {
     }
     ctx.stroke();
   }
+
+  // Map objects (planets & asteroids)
+  renderMapObjects(z, offX, offY);
 
   // Trails — smooth thick lines
   for (const p of players) {
@@ -2078,6 +2364,7 @@ function initGame() {
   }
   players = [];
   _arenaArea = 0;
+  spawnMapObjects();
   assignPlanetsAndSpecies();
 
   // Human — use profile
@@ -2098,6 +2385,7 @@ function startGame() {
   shopOpen = false;
   document.getElementById('shop-panel').classList.remove('open');
   roundCoinsStart = profile.coins;
+  roundSurvivalTime = 0;
   alienSpriteDirty = true;
   // Reset abilities
   inventory = {};
@@ -2112,17 +2400,28 @@ function startGame() {
 }
 
 let roundCoinsStart = 0;
+let roundSurvivalTime = 0;
 
 function gameOver() {
   gameRunning = false;
   if (animFrame) cancelAnimationFrame(animFrame);
   const arenaArea = countArenaArea();
   const human = players[0];
-  const pct = ((human.territoryCount / arenaArea) * 100).toFixed(1);
+  const pct = ((human.territoryCount / arenaArea) * 100);
+
+  // End-of-round bonus coins
+  const territoryBonus = Math.floor(pct * 2);         // 2 coins per 1% territory held
+  const killBonus = human.kills * 15;                  // 15 coins per kill bonus
+  const survivalBonus = Math.floor(roundSurvivalTime / 10) * 5; // 5 coins per 10s survived
+  const roundBonus = territoryBonus + killBonus + survivalBonus;
+  if (roundBonus > 0) addCoins(roundBonus);
+
   const earned = profile.coins - roundCoinsStart;
   const overlay = document.getElementById('overlay');
   overlay.querySelector('h1').textContent = 'Game Over';
-  overlay.querySelector('p').textContent = `${pct}% captured \u2022 ${human.kills} kill${human.kills !== 1 ? 's' : ''} \u2022 +${earned} coins`;
+  overlay.querySelector('p').innerHTML = `${pct.toFixed(1)}% captured \u2022 ${human.kills} kill${human.kills !== 1 ? 's' : ''}<br>` +
+    `<span style="font-size:14px;color:#FFA500;font-weight:bold">+${earned} coins</span>` +
+    `<br><span style="font-size:11px;opacity:0.6">Territory +${territoryBonus} \u2022 Kills +${killBonus} \u2022 Survival +${survivalBonus}</span>`;
   overlay.querySelector('button').textContent = 'Play Again';
   overlay.style.display = 'flex';
 }
