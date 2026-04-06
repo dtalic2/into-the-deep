@@ -32,6 +32,7 @@
   /* Coins HUD */
   #coins-hud { position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.85); padding: 8px 14px; border-radius: 10px; color: #333; font-size: 15px; font-weight: bold; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 2; display: flex; align-items: center; gap: 6px; }
   #coins-hud .coin-icon { width: 20px; height: 20px; background: radial-gradient(circle at 35% 35%, #FFD700, #FFA500); border-radius: 50%; border: 2px solid #E8A800; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #A06800; font-weight: bold; }
+  #lives-hud { position: absolute; top: 16px; left: 90px; background: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 10px; font-size: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 2; letter-spacing: 2px; }
   .coin-popup { position: absolute; pointer-events: none; color: #FFB300; font-size: 16px; font-weight: bold; z-index: 3; animation: coinFloat 1.2s ease-out forwards; text-shadow: 0 1px 3px rgba(0,0,0,0.15); }
   @keyframes coinFloat { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-40px); } }
 
@@ -210,6 +211,7 @@
 </div>
 
 <div id="coins-hud"><div class="coin-icon">$</div> <span id="coin-count">0</span></div>
+<div id="lives-hud">❤️❤️❤️</div>
 <button id="profile-btn">&#128125;</button>
 <div id="ui"><div id="score">0%</div></div>
 
@@ -362,6 +364,11 @@ function updateCoinDisplay() {
   if (sc) sc.textContent = profile.coins;
   const uc = document.getElementById('upgrade-coin-count');
   if (uc) uc.textContent = profile.coins;
+}
+
+function updateLivesDisplay() {
+  const el = document.getElementById('lives-hud');
+  if (el) el.textContent = '❤️'.repeat(humanLives) + '🖤'.repeat(Math.max(0, HUMAN_MAX_LIVES - humanLives));
 }
 
 // ---- Alien face renderer (procedural) ----
@@ -2303,8 +2310,19 @@ function update(dt) {
   updateAbilities(dt);
   updateMapObjects(dt);
 
-  // Check if human is dead
-  if (human && !human.alive && !human.isBot) gameOver();
+  // Check if human is dead — use lives system
+  if (human && !human.alive && !human.isBot) {
+    humanLives--;
+    if (humanLives <= 0) {
+      gameOver();
+    } else {
+      // Respawn with invincibility
+      respawnPlayer(human);
+      human._invincible = SPAWN_INVINCIBILITY;
+      addKillNotif(`${humanLives} ${humanLives === 1 ? 'life' : 'lives'} remaining!`);
+      updateLivesDisplay();
+    }
+  }
   countTerritory();
 
   // Update ability bar (throttled)
@@ -2774,6 +2792,7 @@ function initGame() {
   }
 
   camX = players[0].x; camY = players[0].y;
+  players[0]._invincible = SPAWN_INVINCIBILITY; // spawn protection
   countTerritory();
   terDirty = true;
 }
@@ -2785,6 +2804,7 @@ function startGame() {
   document.getElementById('shop-panel').classList.remove('open');
   roundCoinsStart = profile.coins;
   roundSurvivalTime = 0;
+  humanLives = HUMAN_MAX_LIVES;
   alienSpriteDirty = true;
   // Reset abilities
   inventory = {};
@@ -2792,6 +2812,7 @@ function startGame() {
   projectiles = [];
   cooldowns = {};
   renderAbilityBar();
+  updateLivesDisplay();
   initGame();
   gameRunning = true;
   lastTime = performance.now();
@@ -2800,6 +2821,9 @@ function startGame() {
 
 let roundCoinsStart = 0;
 let roundSurvivalTime = 0;
+let humanLives = 3;
+const HUMAN_MAX_LIVES = 3;
+const SPAWN_INVINCIBILITY = 2.5; // seconds of invincibility on spawn/respawn
 
 function gameOver() {
   gameRunning = false;
