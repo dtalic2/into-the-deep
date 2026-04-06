@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Alien Civilisation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #d0d0d0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+  canvas { border-radius: 8px; cursor: none; }
+  #ui { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #333; text-align: center; pointer-events: none; z-index: 2; }
+  #score { font-size: 28px; font-weight: bold; text-shadow: 0 1px 4px rgba(255,255,255,0.8); }
+  #leaderboard { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.85); padding: 12px 16px; border-radius: 10px; color: #333; font-size: 13px; min-width: 150px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 2; }
+  #leaderboard h3 { margin-bottom: 6px; font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
+  .lb-entry { display: flex; justify-content: space-between; padding: 2px 0; gap: 12px; }
+  .lb-name { display: flex; align-items: center; gap: 5px; }
+  .lb-color { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .lb-crown { font-size: 11px; }
+  #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(255,255,255,0.85); color: #333; z-index: 10; backdrop-filter: blur(8px); }
+  #overlay h1 { font-size: 44px; margin-bottom: 6px; }
+  #overlay p { font-size: 16px; opacity: 0.6; margin-bottom: 24px; }
+  #overlay button { padding: 14px 48px; font-size: 18px; border: none; border-radius: 12px; background: #FF4B5C; color: white; cursor: pointer; font-weight: bold; transition: transform 0.1s; box-shadow: 0 4px 16px rgba(255,75,92,0.3); }
+  #overlay button:hover { transform: scale(1.05); }
+  #controls-hint { font-size: 12px; opacity: 0.4; margin-top: 16px; }
+  #kill-feed { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: 2; text-align: center; }
+  .kill-notif { color: #333; font-size: 15px; font-weight: bold; opacity: 0; animation: killFade 2s ease-out forwards; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
+  @keyframes killFade { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-30px); } }
+  #joystick-zone { position: absolute; bottom: 24px; left: 24px; width: 180px; height: 180px; pointer-events: auto; z-index: 5; touch-action: none; }
+  #joystick-base { width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.02) 70%, transparent 100%); border: 2px solid rgba(0,0,0,0.1); position: relative; cursor: pointer; }
+  #joystick-knob { width: 68px; height: 68px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(0,0,0,0.15), rgba(0,0,0,0.08)); border: 2px solid rgba(0,0,0,0.12); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+
+  /* Coins HUD */
+  #coins-hud { position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.85); padding: 8px 14px; border-radius: 10px; color: #333; font-size: 15px; font-weight: bold; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 2; display: flex; align-items: center; gap: 6px; }
+  #coins-hud .coin-icon { width: 20px; height: 20px; background: radial-gradient(circle at 35% 35%, #FFD700, #FFA500); border-radius: 50%; border: 2px solid #E8A800; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #A06800; font-weight: bold; }
+  .coin-popup { position: absolute; pointer-events: none; color: #FFB300; font-size: 16px; font-weight: bold; z-index: 3; animation: coinFloat 1.2s ease-out forwards; text-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  @keyframes coinFloat { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-40px); } }
+
+  /* Profile Modal */
+  #profile-modal { position: absolute; inset: 0; display: none; justify-content: center; align-items: center; background: rgba(0,0,0,0.5); z-index: 20; backdrop-filter: blur(6px); }
+  #profile-modal.open { display: flex; }
+  #profile-card { background: white; border-radius: 16px; padding: 28px 32px; width: 360px; box-shadow: 0 8px 40px rgba(0,0,0,0.2); text-align: center; position: relative; }
+  #profile-card h2 { font-size: 20px; margin-bottom: 16px; color: #333; }
+  #profile-close { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 22px; cursor: pointer; color: #999; }
+  #profile-close:hover { color: #333; }
+  #alien-preview { width: 120px; height: 120px; margin: 0 auto 16px; border-radius: 50%; border: 3px solid #eee; }
+  .profile-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
+  .profile-row label { font-size: 13px; color: #666; font-weight: 600; }
+  .profile-row input[type=text] { border: 2px solid #eee; border-radius: 8px; padding: 6px 10px; font-size: 14px; width: 160px; outline: none; transition: border-color 0.15s; }
+  .profile-row input[type=text]:focus { border-color: #4B7BFF; }
+  .profile-row select { border: 2px solid #eee; border-radius: 8px; padding: 6px 10px; font-size: 14px; width: 160px; outline: none; background: white; cursor: pointer; }
+  .color-swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 12px 0; }
+  .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color 0.15s, transform 0.1s; }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.active { border-color: #333; }
+  #profile-coins { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 16px; font-weight: bold; margin: 12px 0; color: #333; }
+  #profile-coins .coin-icon { width: 22px; height: 22px; background: radial-gradient(circle at 35% 35%, #FFD700, #FFA500); border-radius: 50%; border: 2px solid #E8A800; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A06800; }
+  #randomize-btn { padding: 8px 20px; border: 2px solid #eee; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; font-weight: 600; color: #666; transition: all 0.15s; margin-top: 4px; }
+  #randomize-btn:hover { border-color: #4B7BFF; color: #4B7BFF; }
+  #profile-btn { position: absolute; top: 56px; left: 16px; background: rgba(255,255,255,0.85); width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 2; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  #profile-btn:hover { background: white; }
+  #overlay-profile-btn { margin-top: 12px; padding: 10px 28px; font-size: 15px; border: 2px solid #ddd; border-radius: 10px; background: white; color: #333; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+  #overlay-profile-btn:hover { border-color: #4B7BFF; color: #4B7BFF; }
+
+  /* Evo Tree Panel */
+  #evo-toggle { position: absolute; bottom: 24px; right: 24px; background: rgba(255,255,255,0.9); border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 6; display: flex; align-items: center; gap: 6px; }
+  #evo-toggle:hover { background: white; }
+  #evo-panel { position: absolute; bottom: 60px; right: 24px; width: 340px; max-height: 420px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
+  #evo-panel.open { display: block; }
+  #evo-panel-header { padding: 14px 16px 8px; font-size: 14px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  #evo-panel-header .kardashev-legend { font-size: 10px; color: #999; font-weight: 400; }
+  .evo-planet { padding: 0 0 4px; }
+  .evo-planet-header { padding: 10px 16px 4px; font-size: 13px; font-weight: 700; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
+  .evo-planet-header:hover { color: #333; }
+  .evo-planet-header .planet-icon { font-size: 16px; }
+  .evo-planet-header .planet-type { font-size: 10px; font-weight: 400; color: #999; margin-left: 4px; }
+  .evo-planet-header .arrow { font-size: 10px; transition: transform 0.2s; }
+  .evo-planet.collapsed .arrow { transform: rotate(-90deg); }
+  .evo-planet.collapsed .evo-species-list { display: none; }
+  .evo-species-group { padding: 2px 0 2px 28px; }
+  .evo-species-name { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0 2px; }
+  .evo-player { display: flex; align-items: center; gap: 6px; padding: 3px 16px 3px 8px; font-size: 12px; color: #444; }
+  .evo-player.dead { opacity: 0.35; }
+  .evo-player .ep-color { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .evo-player .ep-name { flex: 1; font-weight: 600; }
+  .evo-player .ep-badge { font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 700; color: white; }
+  .evo-player .ep-evo { font-size: 10px; color: #999; }
+  .evo-player .ep-pct { font-size: 11px; font-weight: 600; min-width: 36px; text-align: right; }
+  .evo-bar { height: 3px; border-radius: 2px; margin: 1px 16px 2px 8px; background: #eee; }
+  .evo-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  /* Shop Panel */
+  #shop-toggle { position: absolute; bottom: 24px; right: 200px; background: rgba(255,255,255,0.9); border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 6; display: flex; align-items: center; gap: 6px; }
+  #shop-toggle:hover { background: white; }
+  #shop-panel { position: absolute; bottom: 60px; right: 200px; width: 300px; max-height: 440px; background: rgba(255,255,255,0.95); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); z-index: 6; overflow-y: auto; display: none; backdrop-filter: blur(8px); }
+  #shop-panel.open { display: block; }
+  #shop-panel-header { padding: 14px 16px 10px; font-size: 14px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  .shop-coins { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #FFA500; }
+  .shop-coins .coin-icon { width: 16px; height: 16px; background: radial-gradient(circle at 35% 35%, #FFD700, #FFA500); border-radius: 50%; border: 1.5px solid #E8A800; font-size: 8px; display: flex; align-items: center; justify-content: center; color: #A06800; }
+  .shop-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.1s; }
+  .shop-item:hover { background: #f8f8ff; }
+  .shop-item.owned { opacity: 0.5; pointer-events: none; }
+  .shop-item.cant-afford { opacity: 0.4; }
+  .shop-item-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .shop-item-info { flex: 1; }
+  .shop-item-name { font-size: 13px; font-weight: 700; color: #333; }
+  .shop-item-desc { font-size: 10px; color: #999; margin-top: 1px; }
+  .shop-item-price { font-size: 13px; font-weight: 700; color: #FFA500; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .shop-item-key { font-size: 9px; background: #eee; padding: 2px 5px; border-radius: 3px; color: #888; font-weight: 600; margin-left: 4px; }
+
+  /* Ability Bar */
+  #ability-bar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 5; pointer-events: auto; }
+  .ability-slot { width: 52px; height: 52px; border-radius: 12px; background: rgba(255,255,255,0.85); border: 2px solid rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: all 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .ability-slot:hover { background: white; border-color: rgba(0,0,0,0.2); }
+  .ability-slot.locked { opacity: 0.3; pointer-events: none; }
+  .ability-slot.active { border-color: #4B7BFF; box-shadow: 0 0 12px rgba(75,123,255,0.4); }
+  .ability-slot.cooldown { opacity: 0.5; }
+  .ability-slot .ab-icon { font-size: 22px; line-height: 1; }
+  .ability-slot .ab-key { font-size: 8px; color: #999; font-weight: 700; position: absolute; bottom: 2px; }
+  .ability-slot .ab-cd-overlay { position: absolute; inset: 0; border-radius: 10px; background: rgba(0,0,0,0.3); display: none; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 700; }
+  .ability-slot.cooldown .ab-cd-overlay { display: flex; }
+  .ability-slot .ab-count { position: absolute; top: -4px; right: -4px; background: #FF4B5C; color: white; font-size: 9px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <h1>Alien Civilisation</h1>
+  <p>Expand your empire. Eliminate rivals.</p>
+  <button id="startBtn">Play</button>
+  <button id="overlay-profile-btn">Edit Profile</button>
+  <div id="controls-hint">Mouse / WASD / Joystick</div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profile-modal">
+  <div id="profile-card">
+    <button id="profile-close">&times;</button>
+    <h2>Alien Profile</h2>
+    <canvas id="alien-preview" width="120" height="120"></canvas>
+    <div id="profile-coins"><div class="coin-icon">$</div> <span id="modal-coin-count">0</span></div>
+    <div class="profile-row">
+      <label>Name</label>
+      <input type="text" id="profile-name" maxlength="12" placeholder="Your name" />
+    </div>
+    <div class="profile-row">
+      <label>Species</label>
+      <select id="profile-species">
+        <option value="blob">Blob</option>
+        <option value="squid">Squid</option>
+        <option value="crystal">Crystal</option>
+        <option value="insectoid">Insectoid</option>
+        <option value="plant">Floraform</option>
+      </select>
+    </div>
+    <div class="profile-row">
+      <label>Eyes</label>
+      <select id="profile-eyes">
+        <option value="1">Cyclops</option>
+        <option value="2">Normal</option>
+        <option value="3">Tri-Eye</option>
+        <option value="4">Quad</option>
+      </select>
+    </div>
+    <label style="font-size:13px;color:#666;font-weight:600;margin-top:8px;display:block;">Color</label>
+    <div class="color-swatches" id="color-swatches"></div>
+    <button id="randomize-btn">Randomize</button>
+  </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="joystick-zone">
+  <div id="joystick-base">
+    <div id="joystick-knob"></div>
+  </div>
+</div>
+
+<div id="coins-hud"><div class="coin-icon">$</div> <span id="coin-count">0</span></div>
+<button id="profile-btn">&#128125;</button>
+<div id="ui"><div id="score">0%</div></div>
+
+<div id="leaderboard">
+  <h3>Leaderboard</h3>
+  <div id="lb-entries"></div>
+</div>
+
+<div id="kill-feed"></div>
+
+<button id="shop-toggle">🛒 Shop</button>
+<div id="shop-panel">
+  <div id="shop-panel-header">
+    <span>🛒 Arsenal Shop</span>
+    <div class="shop-coins"><div class="coin-icon">$</div><span id="shop-coin-count">0</span></div>
+  </div>
+  <div id="shop-items"></div>
+</div>
+
+<div id="ability-bar"></div>
+
+<button id="evo-toggle">🌳 Evo Tree</button>
+<div id="evo-panel">
+  <div id="evo-panel-header">
+    <span>🌳 Evolutionary Tree</span>
+    <span class="kardashev-legend">K-0 → K-III</span>
+  </div>
+  <div id="evo-tree-content"></div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG — tweak these to change gameplay
+// ============================================================
+const CONFIG = {
+  // Arena
+  GRID_SIZE: 200,
+  ARENA_RADIUS: 88,        // cells — circular playable area
+
+  // Viewport
+  ZOOM: 16,                // pixels per cell on screen
+  CANVAS_WIDTH: 800,
+  CANVAS_HEIGHT: 800,
+
+  // Player
+  PLAYER_SPEED: 4.8,       // cells per second
+  PLAYER_SIZE: 0.7,        // cell units — size of player square
+  PLAYER_START_RADIUS: 3,  // starting territory radius
+  SELF_TRAIL_KILL: true,   // die from crossing your own trail (paper.io2 = true)
+
+  // Bots
+  BOT_COUNT: 12,
+  BOT_SPEED_MIN: 3.8,
+  BOT_SPEED_MAX: 4.6,
+  BOT_OUTWARD_MIN: 4,      // min cells before turning
+  BOT_OUTWARD_MAX: 14,
+  BOT_LATERAL_MIN: 4,
+  BOT_LATERAL_MAX: 14,
+  BOT_RESPAWN_DELAY: 2000,
+
+  // Colors — bright and saturated for paper aesthetic
+  COLORS: [
+    '#FF4B5C','#4B7BFF','#2ECC71','#FF9F43',
+    '#A55EEA','#FF6B81','#1DD1A1','#FECA57',
+    '#54A0FF','#FF6348','#5F27CD','#01A3A4',
+    '#EE5A24','#6C5CE7','#00B894','#FD79A8',
+  ],
+
+  BOT_NAMES: [
+    'Nova','Blitz','Echo','Drift','Pulse','Rift','Volt','Haze',
+    'Flux','Glow','Zara','Neon','Kira','Apex','Vex','Orion',
+    'Luna','Byte','Pix','Zen','Raze','Jinx','Aero','Coda',
+  ],
+
+  // Visual
+  BG_COLOR: '#E8E8E8',
+  ARENA_COLOR: '#FFFFFF',
+  TERRITORY_ALPHA: 0.55,
+  TRAIL_WIDTH: 0.45,
+  BORDER_WIDTH: 2,
+  BORDER_DARKEN: 50,
+  CAMERA_SPEED: 10,
+
+  // Gameplay
+  KILL_REWARD: 0.3,
+};
+
+// ============================================================
+// ALIEN PROFILE + COINS (persisted to localStorage)
+// ============================================================
+const PROFILE_DEFAULTS = {
+  name: 'Alien',
+  species: 'blob',
+  eyes: '2',
+  colorIndex: 0,
+  coins: 0,
+};
+
+let profile = loadProfile();
+
+function loadProfile() {
+  try {
+    const s = localStorage.getItem('alien_profile');
+    if (s) return { ...PROFILE_DEFAULTS, ...JSON.parse(s) };
+  } catch(e) {}
+  return { ...PROFILE_DEFAULTS };
+}
+
+function saveProfile() {
+  try { localStorage.setItem('alien_profile', JSON.stringify(profile)); } catch(e) {}
+}
+
+function addCoins(n) {
+  profile.coins += n;
+  saveProfile();
+  updateCoinDisplay();
+  // floating popup
+  const el = document.createElement('div');
+  el.className = 'coin-popup';
+  el.textContent = '+' + n;
+  el.style.left = '46px'; el.style.top = '14px';
+  document.getElementById('coins-hud').appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+function updateCoinDisplay() {
+  document.getElementById('coin-count').textContent = profile.coins;
+  const mc = document.getElementById('modal-coin-count');
+  if (mc) mc.textContent = profile.coins;
+  const sc = document.getElementById('shop-coin-count');
+  if (sc) sc.textContent = profile.coins;
+}
+
+// ---- Alien face renderer (procedural) ----
+function drawAlienFace(cvs, species, eyeCount, color) {
+  const c = cvs.getContext('2d');
+  const w = cvs.width, h = cvs.height;
+  const cx = w/2, cy = h/2;
+  c.clearRect(0, 0, w, h);
+
+  const rgb = hexRgbSafe(color);
+  const light = `rgb(${Math.min(255,rgb.r+50)},${Math.min(255,rgb.g+50)},${Math.min(255,rgb.b+50)})`;
+  const dark = `rgb(${Math.max(0,rgb.r-40)},${Math.max(0,rgb.g-40)},${Math.max(0,rgb.b-40)})`;
+  const eyes = parseInt(eyeCount) || 2;
+
+  // Background circle
+  c.beginPath(); c.arc(cx, cy, 54, 0, Math.PI*2);
+  c.fillStyle = '#f0f0f0'; c.fill();
+
+  // Head shape based on species
+  c.save();
+  switch(species) {
+    case 'blob':
+      c.beginPath(); c.arc(cx, cy, 42, 0, Math.PI*2);
+      const bg = c.createRadialGradient(cx-10,cy-10,5, cx,cy,42);
+      bg.addColorStop(0, light); bg.addColorStop(1, color);
+      c.fillStyle = bg; c.fill();
+      c.strokeStyle = dark; c.lineWidth = 2; c.stroke();
+      break;
+    case 'squid':
+      c.beginPath(); c.ellipse(cx, cy-4, 36, 40, 0, 0, Math.PI*2);
+      const sg = c.createRadialGradient(cx-8,cy-12,5, cx,cy,40);
+      sg.addColorStop(0, light); sg.addColorStop(1, color);
+      c.fillStyle = sg; c.fill();
+      c.strokeStyle = dark; c.lineWidth = 2; c.stroke();
+      // Tentacles
+      for (let i = 0; i < 4; i++) {
+        const tx = cx - 24 + i * 16;
+        c.beginPath(); c.moveTo(tx, cy+30);
+        c.quadraticCurveTo(tx + (i%2?8:-8), cy+50, tx + (i%2?4:-4), cy+48);
+        c.strokeStyle = color; c.lineWidth = 4; c.lineCap = 'round'; c.stroke();
+      }
+      break;
+    case 'crystal':
+      c.beginPath();
+      c.moveTo(cx, cy-44); c.lineTo(cx+32, cy-10); c.lineTo(cx+26, cy+34);
+      c.lineTo(cx-26, cy+34); c.lineTo(cx-32, cy-10); c.closePath();
+      const cg = c.createLinearGradient(cx-30,cy-44, cx+30,cy+34);
+      cg.addColorStop(0, light); cg.addColorStop(0.5, color); cg.addColorStop(1, dark);
+      c.fillStyle = cg; c.fill();
+      c.strokeStyle = dark; c.lineWidth = 2; c.stroke();
+      // Facets
+      c.beginPath(); c.moveTo(cx,cy-44); c.lineTo(cx+8,cy+10); c.lineTo(cx-14,cy+10); c.closePath();
+      c.fillStyle = 'rgba(255,255,255,0.15)'; c.fill();
+      break;
+    case 'insectoid':
+      c.beginPath(); c.ellipse(cx, cy, 32, 38, 0, 0, Math.PI*2);
+      const ig = c.createRadialGradient(cx-6,cy-10,4, cx,cy,38);
+      ig.addColorStop(0, light); ig.addColorStop(1, color);
+      c.fillStyle = ig; c.fill();
+      c.strokeStyle = dark; c.lineWidth = 2; c.stroke();
+      // Antennae
+      c.beginPath(); c.moveTo(cx-12,cy-34); c.quadraticCurveTo(cx-24,cy-56, cx-20,cy-52);
+      c.strokeStyle = dark; c.lineWidth = 2.5; c.lineCap = 'round'; c.stroke();
+      c.beginPath(); c.arc(cx-20,cy-52,4,0,Math.PI*2); c.fillStyle = color; c.fill();
+      c.beginPath(); c.moveTo(cx+12,cy-34); c.quadraticCurveTo(cx+24,cy-56, cx+20,cy-52);
+      c.strokeStyle = dark; c.lineWidth = 2.5; c.stroke();
+      c.beginPath(); c.arc(cx+20,cy-52,4,0,Math.PI*2); c.fillStyle = color; c.fill();
+      break;
+    case 'plant':
+      c.beginPath(); c.arc(cx, cy+4, 36, 0, Math.PI*2);
+      const pg = c.createRadialGradient(cx-8,cy-6,5, cx,cy,36);
+      pg.addColorStop(0, light); pg.addColorStop(1, color);
+      c.fillStyle = pg; c.fill();
+      c.strokeStyle = dark; c.lineWidth = 2; c.stroke();
+      // Leaves/petals
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI/2 + (i - 2) * 0.45;
+        c.save(); c.translate(cx, cy-20);
+        c.rotate(a);
+        c.beginPath(); c.ellipse(0, -28, 8, 18, 0, 0, Math.PI*2);
+        c.fillStyle = light; c.fill();
+        c.strokeStyle = dark; c.lineWidth = 1.5; c.stroke();
+        c.restore();
+      }
+      break;
+  }
+  c.restore();
+
+  // Eyes
+  const eyeY = cy - 4;
+  const totalWidth = (eyes - 1) * 16;
+  const startX = cx - totalWidth / 2;
+  for (let i = 0; i < eyes; i++) {
+    const ex = startX + i * 16;
+    // White
+    c.beginPath(); c.arc(ex, eyeY, 8, 0, Math.PI*2);
+    c.fillStyle = 'white'; c.fill();
+    c.strokeStyle = dark; c.lineWidth = 1.5; c.stroke();
+    // Pupil
+    c.beginPath(); c.arc(ex+1, eyeY+1, 4, 0, Math.PI*2);
+    c.fillStyle = '#111'; c.fill();
+    // Glint
+    c.beginPath(); c.arc(ex-1.5, eyeY-2, 1.5, 0, Math.PI*2);
+    c.fillStyle = 'white'; c.fill();
+  }
+
+  // Mouth
+  c.beginPath();
+  c.arc(cx, cy + 16, 8, 0.1, Math.PI - 0.1);
+  c.strokeStyle = dark; c.lineWidth = 2; c.lineCap = 'round'; c.stroke();
+}
+
+function hexRgbSafe(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? { r: +('0x'+m[1]), g: +('0x'+m[2]), b: +('0x'+m[3]) } : { r:180,g:180,b:180 };
+}
+
+// ---- Profile UI wiring ----
+function initProfileUI() {
+  const nameInput = document.getElementById('profile-name');
+  const speciesSelect = document.getElementById('profile-species');
+  const eyesSelect = document.getElementById('profile-eyes');
+  const swatchContainer = document.getElementById('color-swatches');
+  const preview = document.getElementById('alien-preview');
+
+  nameInput.value = profile.name;
+  speciesSelect.value = profile.species;
+  eyesSelect.value = profile.eyes;
+
+  // Build color swatches
+  swatchContainer.innerHTML = '';
+  CONFIG.COLORS.forEach((col, i) => {
+    const d = document.createElement('div');
+    d.className = 'color-swatch' + (i === profile.colorIndex ? ' active' : '');
+    d.style.background = col;
+    d.onclick = () => {
+      profile.colorIndex = i;
+      swatchContainer.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      d.classList.add('active');
+      saveProfile(); refreshPreview();
+    };
+    swatchContainer.appendChild(d);
+  });
+
+  function refreshPreview() {
+    drawAlienFace(preview, profile.species, profile.eyes, CONFIG.COLORS[profile.colorIndex]);
+  }
+
+  nameInput.oninput = () => { profile.name = nameInput.value || 'Alien'; saveProfile(); };
+  speciesSelect.onchange = () => { profile.species = speciesSelect.value; saveProfile(); refreshPreview(); };
+  eyesSelect.onchange = () => { profile.eyes = eyesSelect.value; saveProfile(); refreshPreview(); };
+
+  document.getElementById('randomize-btn').onclick = () => {
+    profile.species = ['blob','squid','crystal','insectoid','plant'][Math.floor(Math.random()*5)];
+    profile.eyes = '' + (1 + Math.floor(Math.random()*4));
+    profile.colorIndex = Math.floor(Math.random() * CONFIG.COLORS.length);
+    speciesSelect.value = profile.species;
+    eyesSelect.value = profile.eyes;
+    swatchContainer.querySelectorAll('.color-swatch').forEach((s,i) => s.classList.toggle('active', i === profile.colorIndex));
+    saveProfile(); refreshPreview();
+  };
+
+  refreshPreview();
+  updateCoinDisplay();
+}
+
+function openProfile() {
+  document.getElementById('profile-modal').classList.add('open');
+  initProfileUI();
+}
+function closeProfile() {
+  document.getElementById('profile-modal').classList.remove('open');
+  alienSpriteDirty = true; // refresh in-game face on close
+}
+
+document.getElementById('profile-close').onclick = closeProfile;
+document.getElementById('profile-btn').onclick = openProfile;
+document.getElementById('overlay-profile-btn').onclick = openProfile;
+document.getElementById('profile-modal').onclick = e => { if (e.target.id === 'profile-modal') closeProfile(); };
+
+// ============================================================
+// SHOP + ABILITIES
+// ============================================================
+const SHOP_ITEMS = [
+  { id: 'spaceship',  icon: '\u{1F680}', name: 'Spaceship',       desc: 'Speed boost for 8s',                     price: 15,  key: '1', type: 'consumable', maxStack: 5 },
+  { id: 'miner',      icon: '\u26CF\uFE0F', name: 'Mining Drill',   desc: 'Auto-claim 3x3 around you for 10s',      price: 25,  key: '2', type: 'consumable', maxStack: 3 },
+  { id: 'shield',     icon: '\u{1F6E1}\uFE0F', name: 'Shield',       desc: 'Block one trail hit (lasts 12s)',         price: 30,  key: '3', type: 'consumable', maxStack: 3 },
+  { id: 'missile',    icon: '\u{1F3AF}', name: 'Guided Missile',  desc: 'Launch at nearest enemy trail',           price: 20,  key: '4', type: 'consumable', maxStack: 5 },
+  { id: 'energy',     icon: '\u26A1',    name: 'Energy Burst',    desc: 'Instant capture current trail',           price: 35,  key: '5', type: 'consumable', maxStack: 3 },
+];
+
+// Inventory: { itemId: count }
+let inventory = {};
+// Active effects: { itemId: { timer, ... } }
+let activeEffects = {};
+// Projectiles in flight
+let projectiles = [];
+// Cooldowns: { itemId: remainingSeconds }
+let cooldowns = {};
+
+let shopOpen = false;
+document.getElementById('shop-toggle').onclick = () => {
+  shopOpen = !shopOpen;
+  document.getElementById('shop-panel').classList.toggle('open', shopOpen);
+  if (shopOpen) renderShop();
+};
+
+function renderShop() {
+  const container = document.getElementById('shop-items');
+  document.getElementById('shop-coin-count').textContent = profile.coins;
+  let html = '';
+  for (const item of SHOP_ITEMS) {
+    const count = inventory[item.id] || 0;
+    const full = count >= item.maxStack;
+    const cantAfford = profile.coins < item.price;
+    let cls = 'shop-item';
+    if (full) cls += ' owned';
+    else if (cantAfford) cls += ' cant-afford';
+    html += `<div class="${cls}" onclick="buyItem('${item.id}')">
+      <div class="shop-item-icon" style="background:${cantAfford ? '#f0f0f0' : '#f0f8ff'}">${item.icon}</div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">${item.name} ${full ? '(MAX)' : ''}</div>
+        <div class="shop-item-desc">${item.desc}</div>
+      </div>
+      <div class="shop-item-price"><div class="coin-icon" style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFD700,#FFA500);border:1.5px solid #E8A800;font-size:7px;display:flex;align-items:center;justify-content:center;color:#A06800">$</div>${item.price}</div>
+      <span class="shop-item-key">${item.key}</span>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function buyItem(id) {
+  const item = SHOP_ITEMS.find(i => i.id === id);
+  if (!item) return;
+  const count = inventory[item.id] || 0;
+  if (count >= item.maxStack) return;
+  if (profile.coins < item.price) return;
+  profile.coins -= item.price;
+  inventory[item.id] = count + 1;
+  saveProfile();
+  updateCoinDisplay();
+  renderShop();
+  renderAbilityBar();
+}
+
+function renderAbilityBar() {
+  const bar = document.getElementById('ability-bar');
+  let html = '';
+  for (const item of SHOP_ITEMS) {
+    const count = inventory[item.id] || 0;
+    const cd = cooldowns[item.id] || 0;
+    const active = !!activeEffects[item.id];
+    let cls = 'ability-slot';
+    if (count <= 0 && !active) cls += ' locked';
+    if (active) cls += ' active';
+    if (cd > 0) cls += ' cooldown';
+    html += `<div class="${cls}" onclick="useAbility('${item.id}')" title="${item.name}">
+      <span class="ab-icon">${item.icon}</span>
+      <span class="ab-key">${item.key}</span>
+      ${count > 0 ? `<span class="ab-count">${count}</span>` : ''}
+      <div class="ab-cd-overlay">${cd > 0 ? cd.toFixed(0) + 's' : ''}</div>
+    </div>`;
+  }
+  bar.innerHTML = html;
+}
+
+function useAbility(id) {
+  if (!gameRunning) return;
+  const human = players[0];
+  if (!human || !human.alive) return;
+  const item = SHOP_ITEMS.find(i => i.id === id);
+  if (!item) return;
+  const count = inventory[item.id] || 0;
+  if (count <= 0) return;
+  if (cooldowns[item.id] > 0) return;
+  if (activeEffects[item.id]) return; // already active
+
+  inventory[item.id] = count - 1;
+
+  switch (id) {
+    case 'spaceship':
+      activeEffects.spaceship = { timer: 8 };
+      human.speed = CONFIG.PLAYER_SPEED * 1.7;
+      cooldowns.spaceship = 8;
+      break;
+    case 'miner':
+      activeEffects.miner = { timer: 10 };
+      cooldowns.miner = 10;
+      break;
+    case 'shield':
+      activeEffects.shield = { timer: 12, hits: 1 };
+      cooldowns.shield = 12;
+      break;
+    case 'missile':
+      launchMissile(human);
+      cooldowns.missile = 2;
+      break;
+    case 'energy':
+      // Instant capture of current trail
+      if (human.trail.length > 1) {
+        captureTerritory(human);
+        addKillNotif('Energy Burst: trail captured!');
+      } else {
+        addKillNotif('No trail to capture!');
+        inventory[item.id] = count; // refund
+      }
+      cooldowns.energy = 3;
+      break;
+  }
+  renderAbilityBar();
+}
+
+function launchMissile(human) {
+  // Find nearest enemy with a trail
+  let best = null, bestD = Infinity;
+  for (const p of players) {
+    if (p === human || !p.alive || p.trail.length === 0) continue;
+    const d = distSq(human.x, human.y, p.x, p.y);
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  if (!best) {
+    // No valid target — find nearest alive enemy
+    for (const p of players) {
+      if (p === human || !p.alive) continue;
+      const d = distSq(human.x, human.y, p.x, p.y);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+  }
+  if (!best) { addKillNotif('No target!'); return; }
+  projectiles.push({
+    x: human.x, y: human.y,
+    target: best,
+    speed: 12,
+    age: 0,
+    maxAge: 5,
+    owner: human,
+  });
+  addKillNotif('Missile launched!');
+}
+
+function updateAbilities(dt) {
+  const human = players[0];
+
+  // Cooldowns
+  for (const id of Object.keys(cooldowns)) {
+    if (cooldowns[id] > 0) {
+      cooldowns[id] -= dt;
+      if (cooldowns[id] <= 0) { cooldowns[id] = 0; }
+    }
+  }
+
+  // Spaceship speed boost
+  if (activeEffects.spaceship) {
+    activeEffects.spaceship.timer -= dt;
+    if (activeEffects.spaceship.timer <= 0) {
+      delete activeEffects.spaceship;
+      if (human && human.alive) human.speed = CONFIG.PLAYER_SPEED;
+    }
+  }
+
+  // Mining drill — auto-claim 3x3 around human
+  if (activeEffects.miner && human && human.alive) {
+    activeEffects.miner.timer -= dt;
+    const cx = human.cx, cy = human.cy;
+    const oid = human.id;
+    let gained = 0;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const gx = cx + dx, gy = cy + dy;
+        if (inBounds(gx, gy) && isInArena(gx, gy) && getCell(gx, gy) !== oid && getCell(gx, gy) !== -1) {
+          setCell(gx, gy, oid);
+          gained++;
+        }
+      }
+    }
+    if (gained > 0) terDirty = true;
+    if (activeEffects.miner.timer <= 0) delete activeEffects.miner;
+  }
+
+  // Shield timer
+  if (activeEffects.shield) {
+    activeEffects.shield.timer -= dt;
+    if (activeEffects.shield.timer <= 0) delete activeEffects.shield;
+  }
+
+  // Projectiles
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const m = projectiles[i];
+    m.age += dt;
+    if (m.age > m.maxAge || !m.target.alive) { projectiles.splice(i, 1); continue; }
+    const dx = m.target.x - m.x, dy = m.target.y - m.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 1.5) {
+      // Hit! Kill target if they have a trail
+      if (m.target.trail.length > 0) {
+        killPlayer(m.target, m.owner);
+      } else {
+        // Just damage — clear some territory
+        const tid = m.target.id;
+        let cleared = 0;
+        const tcx = m.target.cx, tcy = m.target.cy;
+        for (let dy2 = -3; dy2 <= 3; dy2++) {
+          for (let dx2 = -3; dx2 <= 3; dx2++) {
+            const gx = tcx + dx2, gy = tcy + dy2;
+            if (inBounds(gx,gy) && getCell(gx,gy) === tid) { setCell(gx,gy,0); cleared++; }
+          }
+        }
+        if (cleared > 0) { terDirty = true; addKillNotif('Missile hit ' + m.target.name + '!'); }
+      }
+      projectiles.splice(i, 1);
+      continue;
+    }
+    const a = Math.atan2(dy, dx);
+    m.x += Math.cos(a) * m.speed * dt;
+    m.y += Math.sin(a) * m.speed * dt;
+  }
+}
+
+// Shield integration — hook into killPlayer
+const _origKillPlayer = killPlayer;
+killPlayer = function(victim, killer) {
+  if (!victim.isBot && activeEffects.shield && activeEffects.shield.hits > 0) {
+    activeEffects.shield.hits--;
+    addKillNotif('Shield absorbed hit!');
+    // Clear trail safely to reset
+    victim.trail = []; victim.trailPts = []; victim.trailSet.clear();
+    if (activeEffects.shield.hits <= 0) delete activeEffects.shield;
+    renderAbilityBar();
+    return;
+  }
+  _origKillPlayer(victim, killer);
+};
+
+// Key bindings for abilities (1-5)
+window.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  const idx = parseInt(e.key);
+  if (idx >= 1 && idx <= SHOP_ITEMS.length) {
+    useAbility(SHOP_ITEMS[idx - 1].id);
+  }
+});
+
+// ============================================================
+// PLANETS, SPECIES, KARDASHEV SCALE, EVOLUTION
+// ============================================================
+const PLANETS = [
+  { name: 'Zephyr',   type: 'Volcanic',  icon: '\u{1F30B}', color: '#FF6B4A' },
+  { name: 'Thalassa', type: 'Ocean',      icon: '\u{1F30A}', color: '#4BA3FF' },
+  { name: 'Verdana',  type: 'Forest',     icon: '\u{1F33F}', color: '#2ECC71' },
+  { name: 'Crystara', type: 'Crystalline', icon: '\u{1F48E}', color: '#A55EEA' },
+  { name: 'Umbra',    type: 'Dark',       icon: '\u{1F311}', color: '#777' },
+];
+
+const SPECIES_LIST = ['blob', 'squid', 'crystal', 'insectoid', 'plant'];
+
+const SPECIES_LABELS = {
+  blob: 'Bloboid', squid: 'Cephaloid', crystal: 'Crystallid',
+  insectoid: 'Insectoid', plant: 'Floraform',
+};
+
+// Evolutionary routes: 5 stages per species (index 0-4 maps to Kardashev tier)
+const EVO_ROUTES = {
+  blob:      ['Protoplasm', 'Amoeba',  'Blob',       'Megablob',   'Cosmic Jelly'],
+  squid:     ['Larva',      'Polyp',   'Squid',      'Kraken',     'Void Leviathan'],
+  crystal:   ['Shard',      'Cluster', 'Crystal',    'Geode',      'Singularity'],
+  insectoid: ['Grub',       'Drone',   'Insectoid',  'Hive Mind',  'Swarm Nexus'],
+  plant:     ['Seed',       'Sprout',  'Floraform',  'Ancient',    'World Tree'],
+};
+
+const KARDASHEV_TIERS = [
+  { min: 0,   label: 'K-0',     stage: 0, color: '#aaa' },
+  { min: 1,   label: 'K-0.5',   stage: 1, color: '#888' },
+  { min: 3,   label: 'K-I',     stage: 2, color: '#4B7BFF' },
+  { min: 10,  label: 'K-II',    stage: 3, color: '#FF9F43' },
+  { min: 25,  label: 'K-III',   stage: 4, color: '#FF4B5C' },
+];
+
+function getKardashev(pctTerritory) {
+  let tier = KARDASHEV_TIERS[0];
+  for (const t of KARDASHEV_TIERS) {
+    if (pctTerritory >= t.min) tier = t;
+  }
+  return tier;
+}
+
+function getEvoStage(species, pctTerritory) {
+  const tier = getKardashev(pctTerritory);
+  const route = EVO_ROUTES[species] || EVO_ROUTES.blob;
+  return { name: route[tier.stage], stage: tier.stage, tier };
+}
+
+// Assigned at game init
+let planetAssignments = []; // [{ planet, species }] indexed by player index
+
+function assignPlanetsAndSpecies() {
+  planetAssignments = [];
+  // Human player uses their profile
+  planetAssignments.push({
+    planet: Math.floor(Math.random() * PLANETS.length),
+    species: profile.species,
+  });
+  // Distribute bots across planets, each with a random species
+  for (let i = 0; i < CONFIG.BOT_COUNT; i++) {
+    planetAssignments.push({
+      planet: i % PLANETS.length,
+      species: SPECIES_LIST[Math.floor(Math.random() * SPECIES_LIST.length)],
+    });
+  }
+}
+
+// ---- Evo Tree Panel ----
+let evoTreeOpen = false;
+document.getElementById('evo-toggle').onclick = () => {
+  evoTreeOpen = !evoTreeOpen;
+  document.getElementById('evo-panel').classList.toggle('open', evoTreeOpen);
+};
+
+function updateEvoTree() {
+  if (!evoTreeOpen || !players || players.length === 0) return;
+  const arenaArea = countArenaArea();
+  const container = document.getElementById('evo-tree-content');
+
+  // Group players by planet
+  const byPlanet = {};
+  for (const p of players) {
+    const pa = planetAssignments[p.index];
+    if (!pa) continue;
+    const pid = pa.planet;
+    if (!byPlanet[pid]) byPlanet[pid] = [];
+    byPlanet[pid].push(p);
+  }
+
+  let html = '';
+  for (let pi = 0; pi < PLANETS.length; pi++) {
+    const planet = PLANETS[pi];
+    const pPlayers = byPlanet[pi];
+    if (!pPlayers || pPlayers.length === 0) continue;
+
+    // Group by species within planet
+    const bySpecies = {};
+    for (const p of pPlayers) {
+      const sp = planetAssignments[p.index].species;
+      if (!bySpecies[sp]) bySpecies[sp] = [];
+      bySpecies[sp].push(p);
+    }
+
+    html += `<div class="evo-planet" id="evo-planet-${pi}">`;
+    html += `<div class="evo-planet-header" onclick="document.getElementById('evo-planet-${pi}').classList.toggle('collapsed')">`;
+    html += `<span class="arrow">\u25BC</span>`;
+    html += `<span class="planet-icon">${planet.icon}</span>`;
+    html += `<span>${planet.name}</span>`;
+    html += `<span class="planet-type">${planet.type}</span>`;
+    html += `</div>`;
+    html += `<div class="evo-species-list">`;
+
+    for (const [sp, spPlayers] of Object.entries(bySpecies)) {
+      const label = SPECIES_LABELS[sp] || sp;
+      html += `<div class="evo-species-group">`;
+      html += `<div class="evo-species-name">${label}</div>`;
+
+      // Show evolutionary route as a mini breadcrumb
+      const route = EVO_ROUTES[sp] || EVO_ROUTES.blob;
+      html += `<div style="font-size:9px;color:#bbb;padding:0 0 3px 8px;">${route.join(' → ')}</div>`;
+
+      for (const p of spPlayers) {
+        const pct = arenaArea > 0 ? (p.territoryCount / arenaArea) * 100 : 0;
+        const evo = getEvoStage(sp, pct);
+        const dead = !p.alive;
+        const isHuman = !p.isBot;
+        html += `<div class="evo-player${dead ? ' dead' : ''}">`;
+        html += `<span class="ep-color" style="background:${p.color}"></span>`;
+        html += `<span class="ep-name">${isHuman ? '\u{1F47D} ' : ''}${p.name}</span>`;
+        html += `<span class="ep-badge" style="background:${evo.tier.color}">${evo.tier.label}</span>`;
+        html += `<span class="ep-evo">${evo.name}</span>`;
+        html += `<span class="ep-pct">${pct.toFixed(1)}%</span>`;
+        html += `</div>`;
+        // Progress bar toward next tier
+        const nextTier = KARDASHEV_TIERS[Math.min(evo.tier.stage + 1, KARDASHEV_TIERS.length - 1)];
+        const prog = evo.tier.stage >= 4 ? 100 : Math.min(100, ((pct - evo.tier.min) / (nextTier.min - evo.tier.min)) * 100);
+        html += `<div class="evo-bar"><div class="evo-bar-fill" style="width:${Math.max(2,prog)}%;background:${evo.tier.color}"></div></div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ============================================================
+// STATE
+// ============================================================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+canvas.width = CONFIG.CANVAS_WIDTH * dpr;
+canvas.height = CONFIG.CANVAS_HEIGHT * dpr;
+canvas.style.width = CONFIG.CANVAS_WIDTH + 'px';
+canvas.style.height = CONFIG.CANVAS_HEIGHT + 'px';
+ctx.scale(dpr, dpr);
+
+const W = CONFIG.GRID_SIZE;
+const CX = W / 2, CY = W / 2; // arena center
+const R = CONFIG.ARENA_RADIUS;
+
+let grid, players, gameRunning, animFrame, lastTime;
+let camX, camY;
+let killNotifs = [];
+
+// Territory offscreen canvas (1px per cell)
+const terCvs = document.createElement('canvas');
+const terCtx2 = terCvs.getContext('2d');
+terCvs.width = W; terCvs.height = W;
+let terDirty = true;
+
+// Alien face sprite (drawn once, redrawn on profile change)
+const alienSprite = document.createElement('canvas');
+alienSprite.width = 64; alienSprite.height = 64;
+let alienSpriteDirty = true;
+function rebuildAlienSprite() {
+  drawAlienFace(alienSprite, profile.species, profile.eyes, CONFIG.COLORS[profile.colorIndex]);
+  alienSpriteDirty = false;
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+const _cc = {};
+function hexRgb(hex) {
+  if (_cc[hex]) return _cc[hex];
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const c = m ? { r: +('0x'+m[1]), g: +('0x'+m[2]), b: +('0x'+m[3]) } : { r:200, g:200, b:200 };
+  return (_cc[hex] = c);
+}
+
+function darken(hex, n) {
+  const c = hexRgb(hex);
+  return `rgb(${Math.max(0,c.r-n)},${Math.max(0,c.g-n)},${Math.max(0,c.b-n)})`;
+}
+
+function lerpAngle(a, b, t) {
+  let d = b - a;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return a + d * t;
+}
+
+function distSq(x1,y1,x2,y2) { return (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2); }
+
+// ============================================================
+// GRID / ARENA
+// ============================================================
+function inBounds(x, y) { return x >= 0 && y >= 0 && x < W && y < W; }
+function isInArena(x, y) { return (x-CX)*(x-CX) + (y-CY)*(y-CY) <= R*R; }
+function cellKey(x, y) { return y * W + x; }
+function getCell(x, y) { return grid[y * W + x]; }
+function setCell(x, y, v) { grid[y * W + x] = v; }
+function isOwn(p, x, y) { return inBounds(x,y) && getCell(x,y) === p.id; }
+
+function clampToArena(p) {
+  const dx = p.x - CX, dy = p.y - CY;
+  const d = Math.sqrt(dx*dx + dy*dy);
+  if (d > R - 0.5) {
+    const maxD = R - 0.5;
+    p.x = CX + (dx/d) * maxD;
+    p.y = CY + (dy/d) * maxD;
+    // Deflect angle along tangent
+    const wallAngle = Math.atan2(dy, dx);
+    const diff = p.angle - wallAngle;
+    if (Math.abs(diff) < Math.PI / 2 || Math.abs(diff) > Math.PI * 1.5) {
+      const tangent = wallAngle + Math.PI / 2;
+      p.angle = Math.cos(p.angle - tangent) > 0 ? tangent : tangent + Math.PI;
+    }
+    return true;
+  }
+  return false;
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+function createPlayer(index, name, isBot, colorOverride) {
+  // Spawn at random position inside arena
+  let x, y;
+  const margin = CONFIG.PLAYER_START_RADIUS + 3;
+  do {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * (R - margin);
+    x = CX + Math.cos(angle) * dist;
+    y = CY + Math.sin(angle) * dist;
+  } while (!isInArena(Math.floor(x), Math.floor(y)));
+
+  x = Math.floor(x); y = Math.floor(y);
+
+  const cIdx = colorOverride !== undefined ? colorOverride : index;
+  const p = {
+    index, id: index + 1, name, isBot,
+    color: CONFIG.COLORS[cIdx % CONFIG.COLORS.length],
+    x, y,
+    cx: x, cy: y,
+    angle: Math.random() * Math.PI * 2,
+    speed: isBot ? CONFIG.BOT_SPEED_MIN + Math.random() * (CONFIG.BOT_SPEED_MAX - CONFIG.BOT_SPEED_MIN) : CONFIG.PLAYER_SPEED,
+    trail: [],       // [[cx,cy], ...] grid cells for game logic
+    trailPts: [],     // [{x,y}, ...] continuous positions for smooth rendering
+    trailSet: new Set(),
+    alive: true,
+    respawnTimer: 0,
+    territoryCount: 0,
+    kills: 0,
+    // Bot AI
+    aiState: 'onTerritory',
+    aiCellCount: 0,
+    outwardDist: 8,
+    lateralDist: 8,
+    turnDir: 1,
+    targetAngle: 0,
+  };
+
+  stampTerritory(p, x, y, CONFIG.PLAYER_START_RADIUS);
+  return p;
+}
+
+function stampTerritory(p, cx, cy, radius) {
+  const r2 = radius * radius;
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      if (dx*dx + dy*dy <= r2) {
+        const gx = cx + dx, gy = cy + dy;
+        if (inBounds(gx, gy) && isInArena(gx, gy)) setCell(gx, gy, p.id);
+      }
+    }
+  }
+  terDirty = true;
+}
+
+// ============================================================
+// TERRITORY CAPTURE (flood fill)
+// ============================================================
+function captureTerritory(p) {
+  if (p.trail.length < 2) { p.trail = []; p.trailPts = []; p.trailSet.clear(); return; }
+
+  const oid = p.id;
+
+  // Trail cells become territory
+  for (const [tx,ty] of p.trail) {
+    if (inBounds(tx,ty) && isInArena(tx,ty)) setCell(tx, ty, oid);
+  }
+
+  // Bounding box of player's territory
+  let minX = W, minY = W, maxX = 0, maxY = 0;
+  for (let y = 0; y < W; y++) {
+    for (let x = 0; x < W; x++) {
+      if (getCell(x,y) === oid) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  minX = Math.max(0, minX-1); minY = Math.max(0, minY-1);
+  maxX = Math.min(W-1, maxX+1); maxY = Math.min(W-1, maxY+1);
+
+  const w = maxX - minX + 1, h = maxY - minY + 1;
+  const outside = new Uint8Array(w * h);
+  const queue = [];
+
+  // Seed edges of bounding box
+  for (let x = minX; x <= maxX; x++) {
+    for (const y of [minY, maxY]) {
+      const v = getCell(x,y);
+      if (v !== oid && v !== -1) {
+        const lx = x-minX, ly = y-minY;
+        if (!outside[ly*w+lx]) { outside[ly*w+lx] = 1; queue.push(lx, ly); }
+      }
+    }
+  }
+  for (let y = minY+1; y < maxY; y++) {
+    for (const x of [minX, maxX]) {
+      const v = getCell(x,y);
+      if (v !== oid && v !== -1) {
+        const lx = x-minX, ly = y-minY;
+        if (!outside[ly*w+lx]) { outside[ly*w+lx] = 1; queue.push(lx, ly); }
+      }
+    }
+  }
+
+  // BFS
+  let qi = 0;
+  while (qi < queue.length) {
+    const lx = queue[qi++], ly = queue[qi++];
+    for (const [nx,ny] of [[lx-1,ly],[lx+1,ly],[lx,ly-1],[lx,ly+1]]) {
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      if (outside[ny*w+nx]) continue;
+      const gx = nx+minX, gy = ny+minY;
+      const v = getCell(gx, gy);
+      if (v === oid || v === -1) continue; // territory or wall blocks flood
+      outside[ny*w+nx] = 1;
+      queue.push(nx, ny);
+    }
+  }
+
+  // Fill enclosed + count new cells
+  let gained = 0;
+  for (let ly = 0; ly < h; ly++) {
+    for (let lx = 0; lx < w; lx++) {
+      if (!outside[ly*w+lx]) {
+        const gx = lx+minX, gy = ly+minY;
+        if (getCell(gx,gy) !== oid && getCell(gx,gy) !== -1) { setCell(gx, gy, oid); gained++; }
+      }
+    }
+  }
+
+  // Coin reward for territory capture (human only)
+  if (!p.isBot && gained > 0) {
+    const reward = Math.max(1, Math.floor(gained / 8));
+    addCoins(reward);
+  }
+
+  p.trail = []; p.trailPts = []; p.trailSet.clear();
+  terDirty = true;
+}
+
+function countTerritory() {
+  const counts = new Array(players.length).fill(0);
+  let total = 0;
+  for (let i = 0; i < W*W; i++) {
+    if (grid[i] === -1) continue;
+    total++;
+    const v = grid[i];
+    if (v > 0 && v <= players.length) counts[v-1]++;
+  }
+  for (let i = 0; i < players.length; i++) players[i].territoryCount = counts[i];
+  return total;
+}
+
+// ============================================================
+// KILL / RESPAWN
+// ============================================================
+function killPlayer(victim, killer) {
+  victim.alive = false;
+  // Clear trail
+  victim.trail = []; victim.trailPts = []; victim.trailSet.clear();
+
+  if (killer && killer !== victim) {
+    killer.kills++;
+    const victimId = victim.id, killerId = killer.id;
+    // Transfer some territory
+    if (CONFIG.KILL_REWARD > 0) {
+      let transferred = 0;
+      const max = Math.floor(victim.territoryCount * CONFIG.KILL_REWARD);
+      for (let i = 0; i < W*W && transferred < max; i++) {
+        if (grid[i] === victimId) { grid[i] = killerId; transferred++; }
+      }
+    }
+    // Clear rest
+    for (let i = 0; i < W*W; i++) { if (grid[i] === victimId) grid[i] = 0; }
+
+    // Kill notification + coins
+    if (!killer.isBot) {
+      addKillNotif(`Eliminated ${victim.name}!`);
+      addCoins(10);
+    } else if (!victim.isBot) {
+      addKillNotif(`Eliminated by ${killer.name}`);
+    }
+  } else {
+    // Self-kill or border kill
+    const victimId = victim.id;
+    for (let i = 0; i < W*W; i++) { if (grid[i] === victimId) grid[i] = 0; }
+    if (!victim.isBot) addKillNotif('You died!');
+  }
+
+  victim.respawnTimer = victim.isBot ? CONFIG.BOT_RESPAWN_DELAY : 0;
+  terDirty = true;
+}
+
+function respawnPlayer(p) {
+  let x, y;
+  const margin = CONFIG.PLAYER_START_RADIUS + 3;
+  do {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.random() * (R - margin);
+    x = Math.floor(CX + Math.cos(a) * d);
+    y = Math.floor(CY + Math.sin(a) * d);
+  } while (!isInArena(x, y));
+  p.x = x; p.y = y; p.cx = x; p.cy = y;
+  p.angle = Math.random() * Math.PI * 2;
+  p.alive = true;
+  p.trail = []; p.trailPts = []; p.trailSet.clear();
+  p.aiState = 'onTerritory'; p.aiCellCount = 0;
+  stampTerritory(p, x, y, CONFIG.PLAYER_START_RADIUS);
+}
+
+// ============================================================
+// KILL NOTIFICATIONS
+// ============================================================
+function addKillNotif(text) {
+  const el = document.createElement('div');
+  el.className = 'kill-notif';
+  el.textContent = text;
+  document.getElementById('kill-feed').appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+// ============================================================
+// BOT AI — rectangular loop pattern
+// ============================================================
+function updateBotAI(bot, dt) {
+  if (!bot.alive) return;
+
+  // Smooth angle toward target
+  bot.angle = lerpAngle(bot.angle, bot.targetAngle, 8 * dt);
+
+  const onOwn = isOwn(bot, bot.cx, bot.cy);
+
+  switch (bot.aiState) {
+    case 'onTerritory':
+      if (!onOwn && bot.trail.length > 0) {
+        // Just left territory — start outward phase
+        bot.aiState = 'outward';
+        bot.aiCellCount = 0;
+        bot.outwardDist = CONFIG.BOT_OUTWARD_MIN + Math.floor(Math.random() * (CONFIG.BOT_OUTWARD_MAX - CONFIG.BOT_OUTWARD_MIN));
+        bot.lateralDist = CONFIG.BOT_LATERAL_MIN + Math.floor(Math.random() * (CONFIG.BOT_LATERAL_MAX - CONFIG.BOT_LATERAL_MIN));
+        bot.turnDir = Math.random() > 0.5 ? 1 : -1;
+      } else {
+        // Head outward from territory
+        bot.targetAngle = bot.angle + (Math.random() - 0.5) * 0.3;
+      }
+      break;
+
+    case 'outward':
+      if (bot.aiCellCount >= bot.outwardDist) {
+        bot.aiState = 'lateral';
+        bot.aiCellCount = 0;
+        bot.targetAngle = bot.angle + bot.turnDir * Math.PI / 2;
+      }
+      break;
+
+    case 'lateral':
+      if (bot.aiCellCount >= bot.lateralDist) {
+        bot.aiState = 'returning';
+        bot.aiCellCount = 0;
+        const t = findNearestTerritory(bot);
+        if (t) bot.targetAngle = Math.atan2(t.y - bot.y, t.x - bot.x);
+      }
+      break;
+
+    case 'returning':
+      if (bot.aiCellCount % 2 === 0) {
+        const t = findNearestTerritory(bot);
+        if (t) bot.targetAngle = Math.atan2(t.y - bot.y, t.x - bot.x);
+      }
+      if (onOwn) {
+        bot.aiState = 'onTerritory';
+        bot.aiCellCount = 0;
+      }
+      // Safety: if trail is very long, keep heading home
+      if (bot.trail.length > 40) {
+        const t = findNearestTerritory(bot);
+        if (t) bot.targetAngle = Math.atan2(t.y - bot.y, t.x - bot.x);
+      }
+      break;
+  }
+
+  // Avoid arena boundary
+  const dx = bot.x - CX, dy = bot.y - CY;
+  const distFromCenter = Math.sqrt(dx*dx + dy*dy);
+  if (distFromCenter > R - 5) {
+    // Steer toward center
+    const toCenter = Math.atan2(CY - bot.y, CX - bot.x);
+    bot.targetAngle = lerpAngle(bot.targetAngle, toCenter, 0.5);
+  }
+}
+
+function findNearestTerritory(p) {
+  const oid = p.id;
+  let best = null, bestD = Infinity;
+  for (let y = 0; y < W; y += 2) {
+    for (let x = 0; x < W; x += 2) {
+      if (getCell(x,y) === oid) {
+        const d = distSq(x, y, p.cx, p.cy);
+        if (d < bestD) { bestD = d; best = { x, y }; }
+      }
+    }
+  }
+  return best;
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+let mouseX = CONFIG.CANVAS_WIDTH / 2;
+let mouseY = CONFIG.CANVAS_HEIGHT / 2 - 100;
+let mouseActive = false;
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (CONFIG.CANVAS_WIDTH / rect.width);
+  mouseY = (e.clientY - rect.top) * (CONFIG.CANVAS_HEIGHT / rect.height);
+  mouseActive = true;
+});
+canvas.addEventListener('mouseleave', () => { mouseActive = false; });
+
+// Joystick
+const joystickBase = document.getElementById('joystick-base');
+const joystickKnob = document.getElementById('joystick-knob');
+let joystickActive = false;
+let joystickAngle = 0;
+let joystickCenter = { x: 0, y: 0 };
+const JOY_RADIUS = 58;
+const JOY_DEADZONE = 6;
+
+function getJoyCenter() {
+  const r = joystickBase.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2 };
+}
+
+function handleJoyMove(cx, cy) {
+  const dx = cx - joystickCenter.x, dy = cy - joystickCenter.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const clamped = Math.min(dist, JOY_RADIUS);
+  const a = Math.atan2(dy, dx);
+  joystickKnob.style.transform = `translate(calc(-50% + ${Math.cos(a)*clamped}px), calc(-50% + ${Math.sin(a)*clamped}px))`;
+  if (dist > JOY_DEADZONE) { joystickAngle = a; joystickActive = true; }
+}
+
+function resetJoy() {
+  joystickKnob.style.transform = 'translate(-50%, -50%)';
+  joystickActive = false;
+}
+
+joystickBase.addEventListener('mousedown', e => { e.preventDefault(); joystickCenter = getJoyCenter(); handleJoyMove(e.clientX, e.clientY); });
+window.addEventListener('mousemove', e => { if (joystickActive) handleJoyMove(e.clientX, e.clientY); });
+window.addEventListener('mouseup', () => { if (joystickActive) resetJoy(); });
+joystickBase.addEventListener('touchstart', e => { e.preventDefault(); joystickCenter = getJoyCenter(); handleJoyMove(e.touches[0].clientX, e.touches[0].clientY); });
+window.addEventListener('touchmove', e => { if (!joystickActive) return; e.preventDefault(); handleJoyMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+window.addEventListener('touchend', () => { if (joystickActive) resetJoy(); });
+
+function getPlayerAngle(human) {
+  // Priority: joystick > keyboard > mouse
+  if (joystickActive) return joystickAngle;
+
+  let kx = 0, ky = 0;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) kx += 1;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) kx -= 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S']) ky += 1;
+  if (keys['ArrowUp'] || keys['w'] || keys['W']) ky -= 1;
+  if (kx !== 0 || ky !== 0) return Math.atan2(ky, kx);
+
+  if (mouseActive) {
+    const dx = mouseX - CONFIG.CANVAS_WIDTH / 2;
+    const dy = mouseY - CONFIG.CANVAS_HEIGHT / 2;
+    if (Math.abs(dx) + Math.abs(dy) > 8) return Math.atan2(dy, dx);
+  }
+
+  return null;
+}
+
+// ============================================================
+// UPDATE
+// ============================================================
+function update(dt) {
+  const human = players[0];
+
+  // Human direction
+  if (human && human.alive) {
+    const a = getPlayerAngle(human);
+    if (a !== null) human.angle = a;
+  }
+
+  for (const p of players) {
+    if (!p.alive) {
+      if (p.isBot) {
+        p.respawnTimer -= dt * 1000;
+        if (p.respawnTimer <= 0) respawnPlayer(p);
+      }
+      continue;
+    }
+
+    if (p.isBot) updateBotAI(p, dt);
+
+    // Save previous cell
+    const prevCX = p.cx, prevCY = p.cy;
+
+    // Move
+    p.x += Math.cos(p.angle) * p.speed * dt;
+    p.y += Math.sin(p.angle) * p.speed * dt;
+
+    // Clamp to arena (slide along boundary, no death)
+    clampToArena(p);
+
+    const newCX = Math.floor(p.x), newCY = Math.floor(p.y);
+
+    // Entered new cell?
+    if (newCX !== prevCX || newCY !== prevCY) {
+      p.cx = newCX; p.cy = newCY;
+
+      if (!inBounds(p.cx, p.cy) || !isInArena(p.cx, p.cy)) continue;
+
+      // Handle diagonal: ensure 4-connected trail
+      if (newCX !== prevCX && newCY !== prevCY) {
+        processCell(p, newCX, prevCY); // intermediate cell
+      }
+      processCell(p, p.cx, p.cy);
+
+      if (p.isBot) p.aiCellCount++;
+    }
+
+    // Always record continuous position for smooth trail rendering
+    if (p.trail.length > 0) {
+      p.trailPts.push({ x: p.x, y: p.y });
+    }
+  }
+
+  // Abilities
+  updateAbilities(dt);
+
+  // Check if human is dead
+  if (human && !human.alive && !human.isBot) gameOver();
+  countTerritory();
+
+  // Update ability bar (throttled)
+  if (!this._lastAbBarUpdate || performance.now() - this._lastAbBarUpdate > 250) {
+    this._lastAbBarUpdate = performance.now();
+    renderAbilityBar();
+    if (shopOpen) renderShop();
+  }
+}
+
+function processCell(p, cx, cy) {
+  if (!inBounds(cx, cy) || !isInArena(cx, cy)) return;
+  if (!p.alive) return;
+
+  const onOwn = isOwn(p, cx, cy);
+  const key = cellKey(cx, cy);
+
+  if (!onOwn) {
+    // Check trail collisions
+    for (const other of players) {
+      if (!other.alive) continue;
+      if (other === p && !CONFIG.SELF_TRAIL_KILL) continue;
+      if (other.trailSet.has(key)) {
+        if (other === p) { killPlayer(p, null); }
+        else { killPlayer(other, p); }
+        return;
+      }
+    }
+    if (!p.alive) return;
+
+    // Head-on collision
+    for (const other of players) {
+      if (other === p || !other.alive) continue;
+      if (other.cx === cx && other.cy === cy) {
+        const pHome = isOwn(p, cx, cy);
+        const oHome = isOwn(other, cx, cy);
+        if (oHome && !pHome) { killPlayer(p, other); return; }
+        if (pHome && !oHome) { killPlayer(other, p); return; }
+        if (!pHome && !oHome) {
+          if (p.territoryCount >= other.territoryCount) killPlayer(other, p);
+          else killPlayer(p, other);
+          return;
+        }
+      }
+    }
+    if (!p.alive) return;
+
+    // Add to trail
+    if (!p.trailSet.has(key)) {
+      p.trail.push([cx, cy]);
+      p.trailSet.add(key);
+      if (p.trailPts.length === 0) p.trailPts.push({ x: p.x, y: p.y });
+    }
+  } else if (p.trail.length > 0) {
+    // Returned to own territory — capture!
+    captureTerritory(p);
+  }
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function rebuildTerritoryTex() {
+  const img = terCtx2.createImageData(W, W);
+  const d = img.data;
+  const alpha = Math.round(CONFIG.TERRITORY_ALPHA * 255);
+  for (let i = 0; i < W*W; i++) {
+    const v = grid[i];
+    if (v > 0 && v <= players.length) {
+      const c = hexRgb(players[v-1].color);
+      const idx = i*4;
+      d[idx] = c.r; d[idx+1] = c.g; d[idx+2] = c.b; d[idx+3] = alpha;
+    }
+  }
+  terCtx2.putImageData(img, 0, 0);
+  terDirty = false;
+}
+
+function render() {
+  const human = players[0];
+  if (!human) return;
+
+  // Smooth camera
+  const t = 1 - Math.exp(-CONFIG.CAMERA_SPEED * (1/60));
+  camX += (human.x - camX) * t;
+  camY += (human.y - camY) * t;
+
+  const z = CONFIG.ZOOM;
+  const hw = CONFIG.CANVAS_WIDTH / 2, hh = CONFIG.CANVAS_HEIGHT / 2;
+  const offX = hw - camX * z;
+  const offY = hh - camY * z;
+
+  // Background
+  ctx.fillStyle = CONFIG.BG_COLOR;
+  ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+
+  // Arena circle (white paper)
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX * z + offX, CY * z + offY, R * z, 0, Math.PI * 2);
+  ctx.fillStyle = CONFIG.ARENA_COLOR;
+  ctx.fill();
+  ctx.restore();
+
+  // Clip to arena for territory + trails
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX * z + offX, CY * z + offY, R * z, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Territory texture
+  if (terDirty) rebuildTerritoryTex();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(terCvs, 0, 0, W, W, offX, offY, W * z, W * z);
+
+  // Territory borders (crisp lines)
+  const scx = Math.max(0, Math.floor(-offX / z));
+  const ecx = Math.min(W, Math.ceil((CONFIG.CANVAS_WIDTH - offX) / z));
+  const scy = Math.max(0, Math.floor(-offY / z));
+  const ecy = Math.min(W, Math.ceil((CONFIG.CANVAS_HEIGHT - offY) / z));
+
+  // Batch border segments per player
+  const borderSegs = {};
+  for (let y = scy; y < ecy; y++) {
+    for (let x = scx; x < ecx; x++) {
+      const v = getCell(x, y);
+      if (v <= 0) continue;
+      if (!borderSegs[v]) borderSegs[v] = [];
+      const sx = x * z + offX, sy = y * z + offY;
+      if (y === 0 || !inBounds(x,y-1) || getCell(x,y-1) !== v) borderSegs[v].push(sx,sy,sx+z,sy);
+      if (y === W-1 || !inBounds(x,y+1) || getCell(x,y+1) !== v) borderSegs[v].push(sx,sy+z,sx+z,sy+z);
+      if (x === 0 || !inBounds(x-1,y) || getCell(x-1,y) !== v) borderSegs[v].push(sx,sy,sx,sy+z);
+      if (x === W-1 || !inBounds(x+1,y) || getCell(x+1,y) !== v) borderSegs[v].push(sx+z,sy,sx+z,sy+z);
+    }
+  }
+  ctx.lineWidth = CONFIG.BORDER_WIDTH;
+  for (const [id, segs] of Object.entries(borderSegs)) {
+    const p = players[id - 1];
+    if (!p) continue;
+    ctx.strokeStyle = darken(p.color, CONFIG.BORDER_DARKEN);
+    ctx.beginPath();
+    for (let i = 0; i < segs.length; i += 4) {
+      ctx.moveTo(segs[i], segs[i+1]);
+      ctx.lineTo(segs[i+2], segs[i+3]);
+    }
+    ctx.stroke();
+  }
+
+  // Trails — smooth thick lines
+  for (const p of players) {
+    if (!p.alive || p.trailPts.length < 2) continue;
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = z * CONFIG.TRAIL_WIDTH;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(p.trailPts[0].x * z + offX, p.trailPts[0].y * z + offY);
+    for (let i = 1; i < p.trailPts.length; i++) {
+      ctx.lineTo(p.trailPts[i].x * z + offX, p.trailPts[i].y * z + offY);
+    }
+    ctx.lineTo(p.x * z + offX, p.y * z + offY);
+    ctx.stroke();
+    // Glow
+    ctx.globalAlpha = 0.15;
+    ctx.lineWidth = z * CONFIG.TRAIL_WIDTH * 2.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Players — colored squares + alien face for human
+  if (alienSpriteDirty) rebuildAlienSprite();
+  for (const p of players) {
+    if (!p.alive) continue;
+    const px = p.x * z + offX;
+    const py = p.y * z + offY;
+    const half = z * CONFIG.PLAYER_SIZE / 2;
+    const r = half * 0.25;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    roundRect(ctx, px - half + 2, py - half + 2, half*2, half*2, r);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = p.color;
+    roundRect(ctx, px - half, py - half, half*2, half*2, r);
+    ctx.fill();
+    ctx.strokeStyle = darken(p.color, 40);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    roundRect(ctx, px - half + 1, py - half + 1, half * 1.4, half * 0.8, r * 0.8);
+    ctx.fill();
+
+    // Alien face on human player
+    if (!p.isBot) {
+      const faceSize = half * 2.6;
+      ctx.drawImage(alienSprite, px - faceSize/2, py - faceSize/2 - half * 0.15, faceSize, faceSize);
+    }
+
+    // Shield bubble
+    if (!p.isBot && activeEffects.shield) {
+      ctx.beginPath();
+      ctx.arc(px, py, half * 2.2, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(75,200,255,0.6)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(75,200,255,0.08)';
+      ctx.fill();
+    }
+
+    // Spaceship boost ring
+    if (!p.isBot && activeEffects.spaceship) {
+      ctx.beginPath();
+      ctx.arc(px, py, half * 1.8, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,200,50,0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Exhaust trail effect
+      const ex = px - Math.cos(p.angle) * half * 2;
+      const ey = py - Math.sin(p.angle) * half * 2;
+      ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,150,0,0.6)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex - Math.cos(p.angle)*4, ey - Math.sin(p.angle)*4, 3, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,200,0,0.3)'; ctx.fill();
+    }
+
+    // Mining drill indicator
+    if (!p.isBot && activeEffects.miner) {
+      ctx.strokeStyle = 'rgba(200,120,50,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(px - z*1.5, py - z*1.5, z*3, z*3);
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Projectiles (missiles)
+  for (const m of projectiles) {
+    const mx = m.x * z + offX;
+    const my = m.y * z + offY;
+    // Missile body
+    const a = Math.atan2(m.target.y - m.y, m.target.x - m.x);
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(a);
+    ctx.fillStyle = '#FF4B5C';
+    ctx.beginPath();
+    ctx.moveTo(8, 0); ctx.lineTo(-5, -4); ctx.lineTo(-3, 0); ctx.lineTo(-5, 4); ctx.closePath();
+    ctx.fill();
+    // Exhaust
+    ctx.fillStyle = 'rgba(255,150,0,0.7)';
+    ctx.beginPath(); ctx.arc(-6, 0, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,200,50,0.4)';
+    ctx.beginPath(); ctx.arc(-10, 0, 2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    // Tracking line to target
+    const tx = m.target.x * z + offX;
+    const ty = m.target.y * z + offY;
+    ctx.strokeStyle = 'rgba(255,75,92,0.15)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.restore(); // un-clip
+
+  // Arena border
+  ctx.beginPath();
+  ctx.arc(CX * z + offX, CY * z + offY, R * z, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Player names + crown + Kardashev badge
+  const arenaArea = countArenaArea();
+  const leader = players.filter(p => p.alive).sort((a,b) => b.territoryCount - a.territoryCount)[0];
+  for (const p of players) {
+    if (!p.alive) continue;
+    const px = p.x * z + offX;
+    const py = p.y * z + offY;
+    const half = z * CONFIG.PLAYER_SIZE / 2;
+    const pa = planetAssignments[p.index];
+    const pctP = arenaArea > 0 ? (p.territoryCount / arenaArea) * 100 : 0;
+    const tier = getKardashev(pctP);
+
+    // Kardashev badge background
+    const badgeText = tier.label;
+    ctx.font = 'bold 8px sans-serif';
+    const bw = ctx.measureText(badgeText).width + 8;
+    const badgeY = py - half - 22;
+    ctx.fillStyle = tier.color;
+    roundRect(ctx, px - bw/2, badgeY - 8, bw, 12, 3);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText(badgeText, px, badgeY + 1);
+
+    // Planet icon + name
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = '#333';
+    const nameY = py - half - 7;
+    const planetIcon = pa ? PLANETS[pa.planet].icon + ' ' : '';
+    ctx.fillText(planetIcon + p.name, px, nameY);
+
+    // Crown for leader
+    if (p === leader && p.territoryCount > 0) {
+      ctx.font = '10px sans-serif';
+      ctx.fillText('\u{1F451}', px, badgeY - 10);
+    }
+  }
+
+  // UI: Score + Kardashev
+  const humanPct = human.alive ? (human.territoryCount / arenaArea) * 100 : 0;
+  const humanTier = getKardashev(humanPct);
+  const humanPa = planetAssignments[0];
+  const humanEvo = humanPa ? getEvoStage(humanPa.species, humanPct) : null;
+  let scoreText = humanPct.toFixed(1) + '% \u2022 ' + humanTier.label;
+  if (humanEvo) scoreText += ' \u2022 ' + humanEvo.name;
+  document.getElementById('score').textContent = scoreText;
+
+  // Leaderboard with Kardashev
+  const sorted = [...players].filter(p => p.alive).sort((a,b) => b.territoryCount - a.territoryCount);
+  const lbHtml = sorted.slice(0, 6).map((p, i) => {
+    const pctVal = ((p.territoryCount / arenaArea) * 100);
+    const t = getKardashev(pctVal);
+    const bold = p === human ? 'font-weight:bold' : '';
+    const crown = i === 0 && p.territoryCount > 0 ? '<span class="lb-crown">\u{1F451}</span>' : '';
+    return `<div class="lb-entry" style="${bold}">
+      <span class="lb-name"><span class="lb-color" style="background:${p.color}"></span>${crown}${p.name}</span>
+      <span style="color:${t.color};font-size:10px;margin-right:4px">${t.label}</span>
+      <span>${pctVal.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+  document.getElementById('lb-entries').innerHTML = lbHtml;
+
+  // Update evo tree panel (throttled)
+  if (evoTreeOpen && (!this._lastEvoUpdate || performance.now() - this._lastEvoUpdate > 500)) {
+    this._lastEvoUpdate = performance.now();
+    updateEvoTree();
+  }
+}
+
+let _arenaArea = 0;
+function countArenaArea() {
+  if (_arenaArea > 0) return _arenaArea;
+  let c = 0;
+  for (let i = 0; i < W*W; i++) if (grid[i] !== -1) c++;
+  _arenaArea = c;
+  return c;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+function gameLoop(ts) {
+  if (!gameRunning) return;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  update(dt);
+  render();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// INIT / START / GAME OVER
+// ============================================================
+function initGame() {
+  grid = new Int8Array(W * W);
+  // Mark cells outside arena as wall
+  for (let y = 0; y < W; y++) {
+    for (let x = 0; x < W; x++) {
+      grid[y*W+x] = isInArena(x, y) ? 0 : -1;
+    }
+  }
+  players = [];
+  _arenaArea = 0;
+  assignPlanetsAndSpecies();
+
+  // Human — use profile
+  players.push(createPlayer(0, profile.name, false, profile.colorIndex));
+  // Bots
+  for (let i = 0; i < CONFIG.BOT_COUNT; i++) {
+    players.push(createPlayer(i + 1, CONFIG.BOT_NAMES[i % CONFIG.BOT_NAMES.length], true));
+  }
+
+  camX = players[0].x; camY = players[0].y;
+  countTerritory();
+  terDirty = true;
+}
+
+function startGame() {
+  document.getElementById('overlay').style.display = 'none';
+  closeProfile();
+  shopOpen = false;
+  document.getElementById('shop-panel').classList.remove('open');
+  roundCoinsStart = profile.coins;
+  alienSpriteDirty = true;
+  // Reset abilities
+  inventory = {};
+  activeEffects = {};
+  projectiles = [];
+  cooldowns = {};
+  renderAbilityBar();
+  initGame();
+  gameRunning = true;
+  lastTime = performance.now();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+let roundCoinsStart = 0;
+
+function gameOver() {
+  gameRunning = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  const arenaArea = countArenaArea();
+  const human = players[0];
+  const pct = ((human.territoryCount / arenaArea) * 100).toFixed(1);
+  const earned = profile.coins - roundCoinsStart;
+  const overlay = document.getElementById('overlay');
+  overlay.querySelector('h1').textContent = 'Game Over';
+  overlay.querySelector('p').textContent = `${pct}% captured \u2022 ${human.kills} kill${human.kills !== 1 ? 's' : ''} \u2022 +${earned} coins`;
+  overlay.querySelector('button').textContent = 'Play Again';
+  overlay.style.display = 'flex';
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+
+// Init coin display + ability bar on load
+updateCoinDisplay();
+renderAbilityBar();
+</script>
+</body>
+</html>
